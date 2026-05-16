@@ -98,12 +98,34 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
     base_url = data.get(CONF_BASE_URL, DEFAULT_BASE_URL)
+    _LOGGER.info(f"Validating connection to {base_url}")
+
     client = anthropic.AsyncAnthropic(
         api_key=data[CONF_API_KEY],
         base_url=base_url,
         http_client=get_async_client(hass)
     )
-    await client.models.list(timeout=10.0)
+
+    try:
+        _LOGGER.debug(f"Attempting models list for {base_url}")
+        await client.models.list(timeout=10.0)
+        _LOGGER.info(f"Models list succeeded for {base_url}")
+    except Exception as e:
+        _LOGGER.warning(f"Models list endpoint failed for {base_url}: {e}")
+        # Some providers don't support models list, try a simple API call instead
+        try:
+            # Try a minimal API call to verify credentials work
+            _LOGGER.debug(f"Trying minimal API call to {base_url}")
+            await client.messages.create(
+                model="claude-3-haiku-20240307",
+                max_tokens=1,
+                messages=[{"role": "user", "content": "test"}],
+                timeout=10.0
+            )
+            _LOGGER.info(f"API validation succeeded for {base_url}")
+        except Exception as api_error:
+            _LOGGER.error(f"API validation failed for {base_url}: {api_error}")
+            raise api_error
 
 
 class ConfigurableLLMConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -122,11 +144,14 @@ class ConfigurableLLMConfigFlow(ConfigFlow, domain=DOMAIN):
             self._async_abort_entries_match(user_input)
             try:
                 await validate_input(self.hass, user_input)
-            except anthropic.APITimeoutError:
+            except anthropic.APITimeoutError as e:
+                _LOGGER.error(f"Timeout error connecting to API: {e}")
                 errors["base"] = "timeout_connect"
-            except anthropic.APIConnectionError:
+            except anthropic.APIConnectionError as e:
+                _LOGGER.error(f"Connection error: {e}")
                 errors["base"] = "cannot_connect"
             except anthropic.APIStatusError as e:
+                _LOGGER.error(f"API status error: {e}")
                 errors["base"] = "unknown"
                 if (
                     isinstance(e.body, dict)
@@ -134,8 +159,8 @@ class ConfigurableLLMConfigFlow(ConfigFlow, domain=DOMAIN):
                     and error.get("type") == "authentication_error"
                 ):
                     errors["base"] = "authentication_error"
-            except Exception:
-                _LOGGER.exception("Unexpected exception")
+            except Exception as e:
+                _LOGGER.exception(f"Unexpected exception during validation: {e}")
                 errors["base"] = "unknown"
             else:
                 if self.source == SOURCE_REAUTH:
