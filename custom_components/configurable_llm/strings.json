@@ -252,7 +252,5 @@
         }
       }
     }
-  },
-  "services": {},
-  "title": "Configurable LLM"
+  }
 }
