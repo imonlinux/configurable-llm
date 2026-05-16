@@ -1,0 +1,9 @@
+{
+  "name": "Configurable LLM Integration",
+  "description": "Configurable LLM integration with support for multiple API providers including z.ai and any Anthropic-compatible endpoint",
+  "filename": "configurable_llm.zip",
+  "homeassistant": "2024.1.0",
+  "render_readme": true,
+  "zip_release": true,
+  "persistent_directory": "custom_components/configurable_llm"
+}

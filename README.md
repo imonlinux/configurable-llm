@@ -1,5 +1,9 @@
 # Configurable LLM Integration for Home Assistant
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Home Assistant](https://img.shields.io/badge/Home_Assistant-2024.1.0%2B-blue.svg)](https://www.home-assistant.io/)
+[![HACS](https://img.shields.io/badge/HACS-Pending-orange.svg)](https://hacs.xyz/)
+
 A custom Home Assistant component that provides configurable LLM (Large Language Model) integration with support for multiple API providers. Based on the official Anthropic integration, this component adds the ability to use alternative providers like z.ai or any Anthropic-compatible API.
 
 ## 🎯 Key Features
@@ -152,9 +156,12 @@ configurable_llm/
 This component is based on the official Home Assistant Anthropic integration.
 Contributions should maintain compatibility with the original architecture.
 
+**Repository**: https://github.com/imonlinux/configurable-llm-integration
+**Issues**: https://github.com/imonlinux/configurable-llm-integration/issues
+
 ## 📄 License
 
-This component follows the same license as the official Home Assistant integration.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Credits
 
