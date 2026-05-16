@@ -18,7 +18,8 @@
       "authentication_error": "Authentication failed. Please check your API key.",
       "cannot_connect": "Failed to connect to the API. Please check your base URL and network connection.",
       "timeout_connect": "Connection timeout. The API took too long to respond.",
-      "unknown": "An unexpected error occurred."
+      "unknown": "An unexpected error occurred.",
+      "invalid_url_format": "Invalid API endpoint format. Check that the base URL is correct and ends with / (e.g., https://api.z.ai/v1/)"
     }
   },
   "title": "Configurable LLM"

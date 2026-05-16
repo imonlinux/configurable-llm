@@ -83,8 +83,9 @@ A custom Home Assistant component that provides configurable LLM (Large Language
 ### Optional Settings
 - **Base URL**: The API endpoint URL
   - Default: `https://api.anthropic.com` (official Anthropic API)
-  - For z.ai: `https://api.z.ai/v1`
-  - For local servers: `http://localhost:8080/v1`
+  - For z.ai: `https://api.z.ai/v1/` (note trailing slash)
+  - For local servers: `http://localhost:8080/v1/`
+  - **Important**: URL should end with `/` for most providers
   - For custom providers: Check their documentation
 
 ## 🔧 Usage Examples
@@ -92,8 +93,9 @@ A custom Home Assistant component that provides configurable LLM (Large Language
 ### Example 1: Using z.ai
 ```
 API Key: sk-your-zai-key
-Base URL: https://api.z.ai/v1
+Base URL: https://api.z.ai/v1/
 ```
+**Note**: Make sure to include the trailing slash `/` at the end.
 
 ### Example 2: Official Anthropic API
 ```
@@ -104,8 +106,9 @@ Base URL: (leave blank for default)
 ### Example 3: Local LLM Server
 ```
 API Key: any-key
-Base URL: http://localhost:8080/v1
+Base URL: http://localhost:8080/v1/
 ```
+**Note**: Include trailing slash for local servers as well.
 
 ## 🔄 Updating
 
@@ -187,6 +190,23 @@ configurable_llm/
 4. Restart Home Assistant
 
 ## 🔍 Troubleshooting
+
+### URL Format Issues
+**Common base URL problems:**
+- **Missing trailing slash**: `https://api.z.ai/v1` ❌ → `https://api.z.ai/v1/` ✅
+- **Wrong path**: Check provider documentation for correct API path
+- **HTML 404 errors**: Usually means wrong URL format or missing path
+- **Case sensitivity**: URLs are case-sensitive
+
+**Testing your base URL:**
+```bash
+# Test if endpoint is accessible
+curl -H "Authorization: Bearer YOUR_API_KEY" \
+     -H "Content-Type: application/json" \
+     https://your-base-url/v1/messages
+
+# Should return JSON response, not HTML
+```
 
 ### Connection Issues
 - Verify base URL is accessible from your network

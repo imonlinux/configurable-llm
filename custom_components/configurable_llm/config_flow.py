@@ -100,6 +100,15 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
     base_url = data.get(CONF_BASE_URL, DEFAULT_BASE_URL)
     _LOGGER.info(f"Validating connection to {base_url}")
 
+    # Validate URL format
+    if not base_url.startswith(("http://", "https://")):
+        raise ValueError("Base URL must start with http:// or https://")
+
+    # Warn about common URL format issues
+    if not base_url.endswith("/"):
+        _LOGGER.warning(f"Base URL should end with / : {base_url}")
+        base_url = base_url + "/"
+
     client = anthropic.AsyncAnthropic(
         api_key=data[CONF_API_KEY],
         base_url=base_url,
@@ -110,6 +119,20 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
         _LOGGER.debug(f"Attempting models list for {base_url}")
         await client.models.list(timeout=10.0)
         _LOGGER.info(f"Models list succeeded for {base_url}")
+    except anthropic.APIStatusError as e:
+        # Check if response is HTML (indicates wrong URL/format)
+        if hasattr(e, 'response') and hasattr(e.response, 'text'):
+            response_text = e.response.text
+            if '<html>' in response_text.lower() or '<!doctype html>' in response_text.lower():
+                _LOGGER.error(f"Received HTML response instead of JSON. Check base URL format. Response: {response_text[:200]}")
+                raise ValueError(
+                    f"Invalid API endpoint. The URL {base_url} returned a webpage instead of API response. "
+                    f"Common issues:\n"
+                    f"- URL should end with / (e.g., https://api.z.ai/v1/)\n"
+                    f"- Check if the API endpoint path is correct\n"
+                    f"- Verify the domain and port are correct"
+                )
+        raise
     except Exception as e:
         _LOGGER.warning(f"Models list endpoint failed for {base_url}: {e}")
         # Some providers don't support models list, try a simple API call instead
@@ -159,6 +182,10 @@ class ConfigurableLLMConfigFlow(ConfigFlow, domain=DOMAIN):
                     and error.get("type") == "authentication_error"
                 ):
                     errors["base"] = "authentication_error"
+            except ValueError as e:
+                _LOGGER.error(f"URL format error: {e}")
+                errors["base"] = "invalid_url_format"
+                errors[CONF_BASE_URL] = str(e)
             except Exception as e:
                 _LOGGER.exception(f"Unexpected exception during validation: {e}")
                 errors["base"] = "unknown"
