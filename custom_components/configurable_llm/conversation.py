@@ -1,4 +1,4 @@
-"""Conversation support for Anthropic."""
+"""Conversation support for Configurable LLM."""
 
 from typing import Literal
 
@@ -8,14 +8,14 @@ from homeassistant.const import CONF_LLM_HASS_API, MATCH_ALL
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from . import AnthropicConfigEntry
+from . import ConfigurableLLMConfigEntry
 from .const import CONF_PROMPT, DOMAIN
-from .entity import AnthropicBaseLLMEntity
+from .entity import ConfigurableLLMBaseEntity
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: AnthropicConfigEntry,
+    config_entry: ConfigurableLLMConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up conversation entities."""
@@ -24,22 +24,22 @@ async def async_setup_entry(
             continue
 
         async_add_entities(
-            [AnthropicConversationEntity(config_entry, subentry)],
+            [ConfigurableLLMConversationEntity(config_entry, subentry)],
             config_subentry_id=subentry.subentry_id,
         )
 
 
-class AnthropicConversationEntity(
+class ConfigurableLLMConversationEntity(
     conversation.ConversationEntity,
     conversation.AbstractConversationAgent,
-    AnthropicBaseLLMEntity,
+    ConfigurableLLMBaseEntity,
 ):
-    """Anthropic conversation agent."""
+    """Configurable LLM conversation agent."""
 
     _attr_supports_streaming = True
     _attr_translation_key = "conversation"
 
-    def __init__(self, entry: AnthropicConfigEntry, subentry: ConfigSubentry) -> None:
+    def __init__(self, entry: ConfigurableLLMConfigEntry, subentry: ConfigSubentry) -> None:
         """Initialize the agent."""
         super().__init__(entry, subentry)
         if self.subentry.data.get(CONF_LLM_HASS_API):

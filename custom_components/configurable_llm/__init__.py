@@ -14,7 +14,11 @@ from homeassistant.helpers import (
 from homeassistant.helpers.typing import ConfigType
 
 from .const import CONF_CHAT_MODEL, DEFAULT_CONVERSATION_NAME, DOMAIN, LOGGER
-from .coordinator import ConfigurableLLMConfigEntry, ConfigurableLLMCoordinator
+from .coordinator import ConfigurableLLMConfigEntry as ConfigEntry, ConfigurableLLMCoordinator as Coordinator
+
+# Type aliases for backward compatibility
+ConfigurableLLMConfigEntry = ConfigEntry
+ConfigurableLLMCoordinator = Coordinator
 
 PLATFORMS = (Platform.AI_TASK, Platform.CONVERSATION)
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)

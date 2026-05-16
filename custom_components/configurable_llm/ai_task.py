@@ -1,4 +1,4 @@
-"""AI Task integration for Anthropic."""
+"""AI Task integration for Configurable LLM."""
 
 from json import JSONDecodeError
 import logging
@@ -11,17 +11,17 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util.json import json_loads
 
 from .const import DOMAIN
-from .entity import AnthropicBaseLLMEntity
+from .entity import ConfigurableLLMBaseEntity
 
 if TYPE_CHECKING:
-    from . import AnthropicConfigEntry
+    from . import ConfigurableLLMConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    config_entry: AnthropicConfigEntry,
+    config_entry: ConfigurableLLMConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up AI Task entities."""
@@ -30,16 +30,16 @@ async def async_setup_entry(
             continue
 
         async_add_entities(
-            [AnthropicTaskEntity(config_entry, subentry)],
+            [ConfigurableLLMTaskEntity(config_entry, subentry)],
             config_subentry_id=subentry.subentry_id,
         )
 
 
-class AnthropicTaskEntity(
+class ConfigurableLLMTaskEntity(
     ai_task.AITaskEntity,
-    AnthropicBaseLLMEntity,
+    ConfigurableLLMBaseEntity,
 ):
-    """Anthropic AI Task entity."""
+    """Configurable LLM AI Task entity."""
 
     _attr_supported_features = (
         ai_task.AITaskEntityFeature.GENERATE_DATA

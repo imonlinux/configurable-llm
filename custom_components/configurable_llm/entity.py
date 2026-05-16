@@ -1,4 +1,4 @@
-"""Base entity for Anthropic."""
+"""Base entity for Configurable LLM."""
 
 import base64
 from collections import deque
@@ -131,7 +131,7 @@ from .const import (
     MIN_THINKING_BUDGET,
     PromptCaching,
 )
-from .coordinator import AnthropicConfigEntry, AnthropicCoordinator
+from .coordinator import ConfigurableLLMConfigEntry, ConfigurableLLMCoordinator
 
 # Max number of back and forth with the LLM to generate a response
 MAX_TOOL_ITERATIONS = 10
@@ -463,7 +463,7 @@ def _convert_content(  # noqa: C901
     return messages, container_id
 
 
-class AnthropicDeltaStream:
+class ConfigurableLLMDeltaStream:
     """Transform the response stream into HA format.
 
     A typical stream of responses might look something like the following:
@@ -867,13 +867,13 @@ class AnthropicDeltaStream:
         }
 
 
-class AnthropicBaseLLMEntity(CoordinatorEntity[AnthropicCoordinator]):
+class ConfigurableLLMBaseEntity(CoordinatorEntity[ConfigurableLLMCoordinator]):
     """Anthropic base LLM entity."""
 
     _attr_has_entity_name = True
     _attr_name = None
 
-    def __init__(self, entry: AnthropicConfigEntry, subentry: ConfigSubentry) -> None:
+    def __init__(self, entry: ConfigurableLLMConfigEntry, subentry: ConfigSubentry) -> None:
         """Initialize the entity."""
         super().__init__(entry.runtime_data)
         self.entry = entry
@@ -886,7 +886,7 @@ class AnthropicBaseLLMEntity(CoordinatorEntity[AnthropicCoordinator]):
         self._attr_device_info = dr.DeviceInfo(
             identifiers={(DOMAIN, subentry.subentry_id)},
             name=subentry.title,
-            manufacturer="Anthropic",
+            manufacturer="Configurable LLM",
             model=self.model_info.display_name,
             model_id=self.model_info.id,
             entry_type=dr.DeviceEntryType.SERVICE,
@@ -1153,7 +1153,7 @@ class AnthropicBaseLLMEntity(CoordinatorEntity[AnthropicCoordinator]):
                         content
                         async for content in chat_log.async_add_delta_content_stream(
                             self.entity_id,
-                            AnthropicDeltaStream(
+                            ConfigurableLLMDeltaStream(
                                 chat_log,
                                 stream,
                                 output_tool=structure_name or None,
@@ -1172,7 +1172,7 @@ class AnthropicBaseLLMEntity(CoordinatorEntity[AnthropicCoordinator]):
                     translation_placeholders={"message": err.message},
                 ) from err
             except anthropic.APIConnectionError as err:
-                LOGGER.info("Connection error while talking to Anthropic: %s", err)
+                LOGGER.info("Connection error while talking to API: %s", err)
                 coordinator.mark_connection_error()
                 raise HomeAssistantError(
                     translation_domain=DOMAIN,
@@ -1182,7 +1182,7 @@ class AnthropicBaseLLMEntity(CoordinatorEntity[AnthropicCoordinator]):
             except anthropic.AnthropicError as err:
                 # Non-connection error, mark connection as healthy
                 coordinator.async_set_updated_data(coordinator.data)
-                LOGGER.error("Error while talking to Anthropic: %s", err)
+                LOGGER.error("Error while talking to API: %s", err)
                 raise HomeAssistantError(
                     translation_domain=DOMAIN,
                     translation_key="api_error",
