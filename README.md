@@ -83,19 +83,18 @@ A custom Home Assistant component that provides configurable LLM (Large Language
 ### Optional Settings
 - **Base URL**: The API endpoint URL
   - Default: `https://api.anthropic.com` (official Anthropic API)
-  - For z.ai: `https://api.z.ai/v1/` (note trailing slash)
+  - For z.ai: `https://api.z.ai/api/anthropic`
   - For local servers: `http://localhost:8080/v1/`
-  - **Important**: URL should end with `/` for most providers
-  - For custom providers: Check their documentation
+  - **Important**: Different providers use different URL structures
+  - For custom providers: Check their documentation for exact format
 
 ## 🔧 Usage Examples
 
 ### Example 1: Using z.ai
 ```
 API Key: sk-your-zai-key
-Base URL: https://api.z.ai/v1/
+Base URL: https://api.z.ai/api/anthropic
 ```
-**Note**: Make sure to include the trailing slash `/` at the end.
 
 ### Example 2: Official Anthropic API
 ```

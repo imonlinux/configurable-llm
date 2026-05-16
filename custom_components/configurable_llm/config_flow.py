@@ -104,11 +104,6 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
     if not base_url.startswith(("http://", "https://")):
         raise ValueError("Base URL must start with http:// or https://")
 
-    # Warn about common URL format issues
-    if not base_url.endswith("/"):
-        _LOGGER.warning(f"Base URL should end with / : {base_url}")
-        base_url = base_url + "/"
-
     client = anthropic.AsyncAnthropic(
         api_key=data[CONF_API_KEY],
         base_url=base_url,
@@ -124,13 +119,15 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
         if hasattr(e, 'response') and hasattr(e.response, 'text'):
             response_text = e.response.text
             if '<html>' in response_text.lower() or '<!doctype html>' in response_text.lower():
-                _LOGGER.error(f"Received HTML response instead of JSON. Check base URL format. Response: {response_text[:200]}")
+                _LOGGER.error(f"Received HTML response instead of JSON. Base URL: {base_url}. Response: {response_text[:200]}")
                 raise ValueError(
-                    f"Invalid API endpoint. The URL {base_url} returned a webpage instead of API response. "
+                    f"Invalid API endpoint. The URL '{base_url}' returned a webpage instead of API response. "
+                    f"This usually means the base URL is incorrect for your provider. "
+                    f"Please check your provider's API documentation for the correct base URL. "
                     f"Common issues:\n"
-                    f"- URL should end with / (e.g., https://api.z.ai/v1/)\n"
-                    f"- Check if the API endpoint path is correct\n"
-                    f"- Verify the domain and port are correct"
+                    f"- Wrong domain or subdomain\n"
+                    f"- Incorrect API version path\n"
+                    f"- Provider may use different URL structure than Anthropic"
                 )
         raise
     except Exception as e:
