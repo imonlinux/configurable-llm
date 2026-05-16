@@ -4,6 +4,6 @@
   "filename": "configurable_llm.zip",
   "homeassistant": "2024.1.0",
   "render_readme": true,
-  "zip_release": true,
+  "zip_release": false,
   "persistent_directory": "custom_components/configurable_llm"
 }
