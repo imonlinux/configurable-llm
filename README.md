@@ -57,14 +57,15 @@ A custom Home Assistant component that provides configurable LLM (Large Language
 
 ### Option 2: Manual Installation
 
-1. **Download the latest release:**
+1. **Download the component:**
    ```bash
-   wget https://github.com/imonlinux/configurable-llm/releases/latest/download/configurable_llm.zip
+   git clone https://github.com/imonlinux/configurable-llm.git
+   cd configurable-llm
    ```
 
-2. **Extract to your Home Assistant configuration:**
+2. **Copy to your Home Assistant configuration:**
    ```bash
-   unzip configurable_llm.zip -d /path/to/homeassistant/custom_components/
+   cp -r custom_components/configurable_llm /path/to/homeassistant/custom_components/
    ```
 
 3. **Restart Home Assistant**
@@ -115,8 +116,15 @@ Base URL: http://localhost:8080/v1
 - Restart Home Assistant when prompted
 
 ### Manual Update
-1. Download the [latest release](https://github.com/imonlinux/configurable-llm/releases/latest)
-2. Extract and replace the files in `custom_components/configurable_llm/`
+1. Navigate to your configurable-llm directory and pull latest changes:
+   ```bash
+   cd /path/to/configurable-llm
+   git pull
+   ```
+2. Copy the updated files to your Home Assistant:
+   ```bash
+   cp -r custom_components/configurable_llm /path/to/homeassistant/custom_components/
+   ```
 3. Restart Home Assistant
 
 ## 📚 Features
