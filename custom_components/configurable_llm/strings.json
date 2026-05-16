@@ -12,6 +12,54 @@
           "api_key": "Enter your API key for the LLM service.",
           "base_url": "Enter the base URL for your LLM API endpoint. Default is Anthropic's official API. Use z.ai or other compatible services by entering their base URL."
         }
+      },
+      "init": {
+        "title": "Configure conversation agent",
+        "description": "Configure the conversation agent with basic settings.",
+        "data": {
+          "name": "Name",
+          "prompt": "System Prompt",
+          "llm_hass_api": "Home Assistant API",
+          "recommended": "Use recommended settings"
+        },
+        "data_description": {
+          "prompt": "Set a custom system prompt to define the assistant's behavior and personality."
+        }
+      },
+      "advanced": {
+        "title": "Advanced settings",
+        "description": "Configure advanced model settings.",
+        "data": {
+          "chat_model": "Model",
+          "prompt_caching": "Prompt Caching"
+        },
+        "error": {
+          "model_not_found": "Model not found",
+          "api_error": "API error: {message}"
+        }
+      },
+      "model": {
+        "title": "Model-specific settings",
+        "description": "Configure settings specific to the selected model.",
+        "data": {
+          "max_tokens": "Max Tokens",
+          "thinking_budget": "Thinking Budget",
+          "thinking_effort": "Thinking Effort",
+          "code_execution": "Code Execution",
+          "web_search": "Web Search",
+          "web_search_max_uses": "Web Search Max Uses",
+          "web_search_user_location": "Use User Location",
+          "tool_search": "Tool Search"
+        },
+        "data_description": {
+          "thinking_budget": "Tokens to allocate for thinking in extended thinking mode.",
+          "thinking_effort": "Effort level for extended thinking mode.",
+          "web_search_max_uses": "Maximum number of web searches per conversation.",
+          "web_search_user_location": "Include user's location in web search queries."
+        },
+        "error": {
+          "thinking_budget_too_large": "Thinking budget must be less than max tokens"
+        }
       }
     },
     "error": {
@@ -19,7 +67,8 @@
       "cannot_connect": "Failed to connect to the API. Please check your base URL and network connection.",
       "timeout_connect": "Connection timeout. The API took too long to respond.",
       "unknown": "An unexpected error occurred.",
-      "invalid_url_format": "Invalid API endpoint format. Check that the base URL is correct and ends with / (e.g., https://api.z.ai/v1/)"
+      "invalid_url_format": "Invalid API endpoint format. Check that the base URL is correct and ends with / (e.g., https://api.z.ai/v1/)",
+      "entry_not_loaded": "The integration entry is not loaded. Please reload the integration and try again."
     }
   },
   "title": "Configurable LLM"
