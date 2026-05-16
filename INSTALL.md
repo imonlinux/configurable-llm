@@ -1,4 +1,4 @@
-# Installation Guide for Configurable LLM Integration
+# Installation Guide for Configurable LLM
 
 ## 🚀 Quick Installation
 
@@ -6,8 +6,8 @@
 
 1. **Download the component:**
    ```bash
-   git clone https://github.com/yourusername/configurable-llm-integration.git
-   cd configurable-llm-integration
+   git clone https://github.com/imonlinux/configurable-llm.git
+   cd configurable-llm
    ```
 
 2. **Copy to Home Assistant:**

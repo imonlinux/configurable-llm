@@ -1,5 +1,5 @@
 {
-  "name": "Configurable LLM Integration",
+  "name": "Configurable LLM",
   "description": "Configurable LLM integration with support for multiple API providers including z.ai and any Anthropic-compatible endpoint",
   "filename": "configurable_llm.zip",
   "homeassistant": "2024.1.0",

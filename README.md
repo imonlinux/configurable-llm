@@ -1,4 +1,4 @@
-# Configurable LLM Integration for Home Assistant
+# Configurable LLM for Home Assistant
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Home Assistant](https://img.shields.io/badge/Home_Assistant-2024.1.0%2B-blue.svg)](https://www.home-assistant.io/)
@@ -32,7 +32,7 @@ A custom Home Assistant component that provides configurable LLM (Large Language
 
 ### Option 1: Via HACS (Recommended)
 
-[![Open your Home Assistant instance and open the repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=imonlinux&repository=configurable-llm-integration&category=integration)
+[![Open your Home Assistant instance and open the repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=imonlinux&repository=configurable-llm&category=integration)
 
 1. **Install HACS** if you haven't already:
    ```bash
@@ -42,11 +42,11 @@ A custom Home Assistant component that provides configurable LLM (Large Language
 2. **Add this repository to HACS:**
    - Open HACS in Home Assistant
    - Go to Integrations → Click the three dots (⋮) → "Custom repositories"
-   - Add: `https://github.com/imonlinux/configurable-llm-integration`
+   - Add: `https://github.com/imonlinux/configurable-llm`
    - Category: "Integration"
 
 3. **Install the integration:**
-   - In HACS, search for "Configurable LLM Integration"
+   - In HACS, search for "Configurable LLM"
    - Click "Download" → "Install"
    - Restart Home Assistant when prompted
 
@@ -59,7 +59,7 @@ A custom Home Assistant component that provides configurable LLM (Large Language
 
 1. **Download the latest release:**
    ```bash
-   wget https://github.com/imonlinux/configurable-llm-integration/releases/latest/download/configurable_llm.zip
+   wget https://github.com/imonlinux/configurable-llm/releases/latest/download/configurable_llm.zip
    ```
 
 2. **Extract to your Home Assistant configuration:**
@@ -110,12 +110,12 @@ Base URL: http://localhost:8080/v1
 
 ### Via HACS
 - Open HACS → Integrations
-- Click "Configurable LLM Integration"
+- Click "Configurable LLM"
 - Click "Update" if a new version is available
 - Restart Home Assistant when prompted
 
 ### Manual Update
-1. Download the [latest release](https://github.com/imonlinux/configurable-llm-integration/releases/latest)
+1. Download the [latest release](https://github.com/imonlinux/configurable-llm/releases/latest)
 2. Extract and replace the files in `custom_components/configurable_llm/`
 3. Restart Home Assistant
 
@@ -214,8 +214,8 @@ configurable_llm/
 This component is based on the official Home Assistant Anthropic integration.
 Contributions should maintain compatibility with the original architecture.
 
-**Repository**: https://github.com/imonlinux/configurable-llm-integration
-**Issues**: https://github.com/imonlinux/configurable-llm-integration/issues
+**Repository**: https://github.com/imonlinux/configurable-llm
+**Issues**: https://github.com/imonlinux/configurable-llm/issues
 
 ## 📄 License
 
@@ -227,7 +227,7 @@ Based on the [official Home Assistant Anthropic integration](https://github.com/
 
 ---
 
-**Component Name**: Configurable LLM Integration
+**Component Name**: Configurable LLM
 **Domain**: `configurable_llm`
 **Version**: 1.0.0
 **Status**: ✅ Ready for installation and testing

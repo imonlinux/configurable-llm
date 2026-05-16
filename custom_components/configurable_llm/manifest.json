@@ -1,10 +1,11 @@
 {
   "domain": "configurable_llm",
-  "name": "Configurable LLM Integration",
+  "name": "Configurable LLM",
+  "icon": "mdi:brain",
   "codeowners": [],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/home-assistant/core/tree/dev/homeassistant/components/anthropic",
+  "documentation": "https://github.com/imonlinux/configurable-llm",
   "iot_class": "cloud_poll",
   "requirements": ["anthropic>=0.40.0"],
   "version": "1.0.0"
