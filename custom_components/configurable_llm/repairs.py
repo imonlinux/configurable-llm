@@ -1,4 +1,4 @@
-"""Issue repair flow for Anthropic."""
+"""Issue repair flow for Configurable LLM."""
 
 from collections.abc import Iterator
 from typing import TYPE_CHECKING
@@ -21,7 +21,7 @@ from .const import CONF_CHAT_MODEL, DOMAIN
 from .coordinator import model_alias
 
 if TYPE_CHECKING:
-    from . import AnthropicConfigEntry
+    from . import ConfigurableLLMConfigEntry
 
 
 class ModelDeprecatedRepairFlow(RepairsFlow):
@@ -133,7 +133,7 @@ class ModelDeprecatedRepairFlow(RepairsFlow):
 
     async def _async_next_target(
         self,
-    ) -> tuple[AnthropicConfigEntry, ConfigSubentry, str] | None:
+    ) -> tuple["ConfigurableLLMConfigEntry", ConfigSubentry, str] | None:
         """Return the next deprecated subentry target."""
         if self._subentry_iter is None:
             self._subentry_iter = self._iter_deprecated_subentries()

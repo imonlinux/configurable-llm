@@ -1,12 +1,14 @@
 {
   "domain": "configurable_llm",
   "name": "Configurable LLM",
-  "icon": "mdi:brain",
-  "codeowners": [],
+  "codeowners": ["@imonlinux"],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/imonlinux/configurable-llm",
+  "integration_type": "service",
   "iot_class": "cloud_poll",
+  "issue_tracker": "https://github.com/imonlinux/configurable-llm/issues",
+  "quality_scale": "platinum",
   "requirements": ["anthropic>=0.40.0"],
-  "version": "1.0.0"
+  "version": "1.0.1"
 }

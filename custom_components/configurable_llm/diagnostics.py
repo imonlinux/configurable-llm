@@ -1,4 +1,4 @@
-"""Diagnostics support for Anthropic."""
+"""Diagnostics support for Configurable LLM."""
 
 from typing import TYPE_CHECKING, Any
 
@@ -6,6 +6,7 @@ from anthropic import __title__, __version__
 
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.const import CONF_API_KEY
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
 from .const import (
@@ -17,9 +18,7 @@ from .const import (
 )
 
 if TYPE_CHECKING:
-    from homeassistant.core import HomeAssistant
-
-    from . import AnthropicConfigEntry
+    from . import ConfigurableLLMConfigEntry
 
 
 TO_REDACT = {
@@ -33,7 +32,7 @@ TO_REDACT = {
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: AnthropicConfigEntry
+    hass: HomeAssistant, entry: "ConfigurableLLMConfigEntry"
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
 

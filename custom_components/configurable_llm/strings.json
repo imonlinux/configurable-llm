@@ -3,142 +3,256 @@
     "step": {
       "user": {
         "title": "Connect to LLM API",
-        "description": "Set up your configurable LLM API connection. Works with Anthropic-compatible APIs including the official API, z.ai, and other compatible services.",
+        "description": "Set up your Configurable LLM connection. This integration works with the official Anthropic API and any Anthropic-compatible endpoint, including z.ai and self-hosted servers.",
         "data": {
-          "api_key": "API Key",
-          "base_url": "API Base URL"
+          "api_key": "API key",
+          "base_url": "API base URL"
         },
         "data_description": {
-          "api_key": "Enter your API key for the LLM service.",
-          "base_url": "Enter the base URL for your LLM API endpoint. Default is Anthropic's official API. Use z.ai or other compatible services by entering their base URL."
+          "api_key": "Your API key for the LLM service. For the official Anthropic API this starts with `sk-ant-`. Alternative providers issue their own keys.",
+          "base_url": "The base URL of your LLM API endpoint. Leave as the default for the official Anthropic API, or replace with your provider's URL (e.g., `https://api.z.ai/api/anthropic` for z.ai, or `http://localhost:8080/v1/` for a local server)."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate with the LLM API",
+        "description": "Your API key is no longer valid. Please enter a new API key for {name}.",
+        "data": {
+          "api_key": "[%key:common::config_flow::data::api_key%]"
+        },
+        "data_description": {
+          "api_key": "[%key:component::configurable_llm::config::step::user::data_description::api_key%]"
         }
       }
     },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_service%]",
+      "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]"
+    },
     "error": {
-      "authentication_error": "Authentication failed. Please check your API key.",
-      "cannot_connect": "Failed to connect to the API. Please check your base URL and network connection.",
-      "timeout_connect": "Connection timeout. The API took too long to respond.",
-      "unknown": "An unexpected error occurred.",
-      "invalid_url_format": "Invalid API endpoint format. Check that the base URL is correct and ends with / (e.g., https://api.z.ai/v1/)",
-      "entry_not_loaded": "The integration entry is not loaded. Please reload the integration and try again."
+      "authentication_error": "Authentication failed. Please check that your API key is correct and has not expired.",
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "timeout_connect": "[%key:common::config_flow::error::timeout_connect%]",
+      "invalid_url_format": "Invalid API endpoint. The URL did not return a valid API response. Make sure the base URL is correct for your provider and includes the right path and (where required) a trailing slash.",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
     }
   },
   "config_subentries": {
-    "ai_task_data": {
-      "abort": {
-        "entry_not_loaded": "Cannot add things while the configuration is disabled.",
-        "reconfigure_successful": "Reconfigure successful"
-      },
-      "entry_type": "AI task",
-      "error": {
-        "api_error": "Unable to get model info: {message}",
-        "model_not_found": "Model not found",
-        "thinking_budget_too_large": "Thinking budget must be less than the Maximum tokens."
-      },
-      "initiate_flow": {
-        "reconfigure": "Reconfigure AI task",
-        "user": "Add AI task"
-      },
-      "step": {
-        "init": {
-          "data": {
-            "name": "Name",
-            "recommended": "Use recommended settings"
-          },
-          "data_description": {
-            "name": "The name of this configuration",
-            "recommended": "Use default configuration"
-          },
-          "title": "Basic settings"
-        }
-      }
-    },
     "conversation": {
-      "abort": {
-        "entry_not_loaded": "Cannot add things while the configuration is disabled.",
-        "reconfigure_successful": "Reconfigure successful"
+      "initiate_flow": {
+        "user": "Add conversation agent",
+        "reconfigure": "Reconfigure conversation agent"
       },
       "entry_type": "Conversation agent",
-      "error": {
-        "api_error": "Unable to get model info: {message}",
-        "model_not_found": "Model not found",
-        "thinking_budget_too_large": "Thinking budget must be less than the Maximum tokens."
-      },
-      "initiate_flow": {
-        "reconfigure": "Reconfigure conversation agent",
-        "user": "Add conversation agent"
-      },
       "step": {
         "init": {
+          "title": "Basic settings",
+          "description": "Configure how this conversation agent behaves and which Home Assistant features it can use.",
           "data": {
-            "llm_hass_api": "Control Home Assistant",
             "name": "Name",
             "prompt": "Instructions",
+            "llm_hass_api": "Control Home Assistant",
             "recommended": "Recommended model settings"
           },
           "data_description": {
-            "llm_hass_api": "Allow the LLM to control Home Assistant.",
-            "name": "The name of this configuration",
-            "prompt": "Instruct how the LLM should respond. This can be a template.",
-            "recommended": "Use default configuration"
-          },
-          "title": "Basic settings"
+            "name": "The name shown for this conversation agent in Home Assistant.",
+            "prompt": "Instructions telling the model how to respond. Supports Home Assistant templating.",
+            "llm_hass_api": "Select which Home Assistant APIs the model can use to control your devices. Only entities you have exposed will be accessible.",
+            "recommended": "Use the recommended model and settings. Turn off to customise the model, token limits, thinking, web search and other advanced options."
+          }
         },
         "advanced": {
+          "title": "Advanced settings",
+          "description": "Choose which model to use and how prompt caching should work.",
           "data": {
             "chat_model": "Model",
             "prompt_caching": "Caching strategy"
           },
           "data_description": {
-            "chat_model": "The model to serve the responses.",
-            "prompt_caching": "Optimize your API cost and response times based on your usage."
-          },
-          "title": "Advanced settings"
+            "chat_model": "The model used to generate responses. You can pick from the list or type a model ID for providers that don't expose a list endpoint.",
+            "prompt_caching": "Optimise cost and response time. **Disabled** sends everything fresh each time, **System prompt** caches the system prompt and tools, and **Full** also caches every user message."
+          }
         },
         "model": {
+          "title": "Model-specific options",
+          "description": "Fine-tune the selected model. Available options depend on what the model supports.",
           "data": {
-            "code_execution": "Code execution",
             "max_tokens": "Maximum tokens to return in response",
             "thinking_budget": "Thinking budget",
             "thinking_effort": "Thinking effort",
-            "tool_search": "Enable tool search tool",
+            "code_execution": "Code execution",
+            "web_search": "Web search",
             "web_search_max_uses": "Maximum web searches",
-            "web_search": "Enable web search",
-            "web_search_user_location": "Include home location"
+            "user_location": "Include home location",
+            "tool_search": "Tool search"
           },
           "data_description": {
-            "code_execution": "Allow the model to execute code in a secure sandbox environment, enabling it to analyze data and perform complex calculations.",
-            "max_tokens": "Limit the number of response tokens.",
-            "thinking_budget": "The number of tokens the model can use to think about the response out of the total maximum number of tokens. Set to 1024 or greater to enable extended thinking.",
-            "thinking_effort": "Control how many tokens Claude uses when responding, trading off between response thoroughness and token efficiency",
-            "tool_search": "Enable dynamic tool discovery instead of preloading all tools into the context",
-            "web_search": "The web search tool gives Claude direct access to real-time web content, allowing it to answer questions with up-to-date information beyond its knowledge cutoff",
-            "web_search_max_uses": "Limit the number of searches performed per response",
-            "web_search_user_location": "Localize search results based on home location"
-          },
-          "title": "Model-specific options"
+            "max_tokens": "Maximum length of each response, in tokens.",
+            "thinking_budget": "Tokens reserved for the model's internal reasoning, out of the total maximum. Set to 1024 or higher to enable extended thinking.",
+            "thinking_effort": "How much effort the model should spend reasoning. Higher values produce more thorough but slower (and more expensive) answers.",
+            "code_execution": "Allow the model to execute code in a secure sandbox, useful for data analysis and complex calculations.",
+            "web_search": "Allow the model to search the web for current information beyond its training cutoff.",
+            "web_search_max_uses": "Limit the number of web searches the model can perform in a single response.",
+            "user_location": "Use your Home Assistant home location to localise web search results.",
+            "tool_search": "Discover Home Assistant tools on demand instead of loading them all upfront. Useful when many tools are exposed."
+          }
         }
+      },
+      "error": {
+        "model_not_found": "The selected model was not found. Check the model ID or try a different one.",
+        "thinking_budget_too_large": "The thinking budget must be smaller than the maximum number of tokens.",
+        "api_error": "Unable to get model info: {message}"
+      },
+      "abort": {
+        "entry_not_loaded": "Cannot add or change configuration while the integration is disabled. Re-enable it and try again.",
+        "reconfigure_successful": "[%key:common::config_flow::abort::reconfigure_successful%]"
+      }
+    },
+    "ai_task_data": {
+      "initiate_flow": {
+        "user": "Add AI task",
+        "reconfigure": "Reconfigure AI task"
+      },
+      "entry_type": "AI task",
+      "step": {
+        "init": {
+          "title": "Basic settings",
+          "description": "Configure this AI task entity.",
+          "data": {
+            "name": "Name",
+            "recommended": "Recommended model settings"
+          },
+          "data_description": {
+            "name": "The name shown for this AI task in Home Assistant.",
+            "recommended": "Use the recommended model and settings. Turn off to customise the model and advanced options."
+          }
+        },
+        "advanced": {
+          "title": "[%key:component::configurable_llm::config_subentries::conversation::step::advanced::title%]",
+          "description": "[%key:component::configurable_llm::config_subentries::conversation::step::advanced::description%]",
+          "data": {
+            "chat_model": "[%key:component::configurable_llm::config_subentries::conversation::step::advanced::data::chat_model%]",
+            "prompt_caching": "[%key:component::configurable_llm::config_subentries::conversation::step::advanced::data::prompt_caching%]"
+          },
+          "data_description": {
+            "chat_model": "[%key:component::configurable_llm::config_subentries::conversation::step::advanced::data_description::chat_model%]",
+            "prompt_caching": "[%key:component::configurable_llm::config_subentries::conversation::step::advanced::data_description::prompt_caching%]"
+          }
+        },
+        "model": {
+          "title": "[%key:component::configurable_llm::config_subentries::conversation::step::model::title%]",
+          "description": "[%key:component::configurable_llm::config_subentries::conversation::step::model::description%]",
+          "data": {
+            "max_tokens": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data::max_tokens%]",
+            "thinking_budget": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data::thinking_budget%]",
+            "thinking_effort": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data::thinking_effort%]",
+            "code_execution": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data::code_execution%]",
+            "web_search": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data::web_search%]",
+            "web_search_max_uses": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data::web_search_max_uses%]",
+            "user_location": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data::user_location%]",
+            "tool_search": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data::tool_search%]"
+          },
+          "data_description": {
+            "max_tokens": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data_description::max_tokens%]",
+            "thinking_budget": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data_description::thinking_budget%]",
+            "thinking_effort": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data_description::thinking_effort%]",
+            "code_execution": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data_description::code_execution%]",
+            "web_search": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data_description::web_search%]",
+            "web_search_max_uses": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data_description::web_search_max_uses%]",
+            "user_location": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data_description::user_location%]",
+            "tool_search": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data_description::tool_search%]"
+          }
+        }
+      },
+      "error": {
+        "model_not_found": "[%key:component::configurable_llm::config_subentries::conversation::error::model_not_found%]",
+        "thinking_budget_too_large": "[%key:component::configurable_llm::config_subentries::conversation::error::thinking_budget_too_large%]",
+        "api_error": "[%key:component::configurable_llm::config_subentries::conversation::error::api_error%]"
+      },
+      "abort": {
+        "entry_not_loaded": "[%key:component::configurable_llm::config_subentries::conversation::abort::entry_not_loaded%]",
+        "reconfigure_successful": "[%key:common::config_flow::abort::reconfigure_successful%]"
       }
     }
   },
   "selector": {
     "prompt_caching": {
       "options": {
-        "automatic": "Full",
         "off": "Disabled",
-        "prompt": "System prompt"
+        "prompt": "System prompt",
+        "automatic": "Full"
       }
     },
     "thinking_effort": {
       "options": {
-        "high": "High",
-        "low": "Low",
-        "max": "Max",
-        "medium": "Medium",
         "none": "None",
-        "xhigh": "X-High"
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "xhigh": "X-High",
+        "max": "Max"
       }
     }
   },
+  "exceptions": {
+    "api_authentication_error": {
+      "message": "Authentication with the LLM API failed: {message}"
+    },
+    "api_error": {
+      "message": "Error communicating with the LLM API: {message}"
+    },
+    "api_refusal": {
+      "message": "The model refused to generate a response. Try rewording your request."
+    },
+    "unexpected_chat_log_content": {
+      "message": "Unexpected content type in chat log: {type}"
+    },
+    "unexpected_stream_object": {
+      "message": "Unexpected response stream from the API. The endpoint may not be fully Anthropic-compatible."
+    },
+    "system_message_not_found": {
+      "message": "No system message was found in the chat log."
+    },
+    "user_message_not_found": {
+      "message": "No user message was found in the chat log when preparing attachments."
+    },
+    "wrong_file_path": {
+      "message": "File not found: {file_path}"
+    },
+    "wrong_file_type": {
+      "message": "The file {file_path} has type {mime_type}, which is not supported by model {model}."
+    },
+    "response_not_found": {
+      "message": "No assistant response was returned by the model."
+    },
+    "json_parse_error": {
+      "message": "Failed to parse the model's response as JSON. The model may not have returned valid structured data."
+    },
+    "subentry_not_found": {
+      "message": "The configuration entry being updated could not be found. It may have been removed."
+    },
+    "unknown_issue_id": {
+      "message": "Unknown repair issue."
+    }
+  },
+  "issues": {
+    "model_deprecated": {
+      "title": "Deprecated LLM model in use",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "Update deprecated model",
+            "description": "The model **{model}** used by **{subentry_name}** ({subentry_type}) in **{entry_name}** is deprecated and will be retired on **{retirement_date}**. Please select a replacement model.",
+            "data": {
+              "chat_model": "Model"
+            },
+            "data_description": {
+              "chat_model": "Pick a non-deprecated model. A suggestion in the same family (Haiku / Sonnet / Opus) has been pre-filled."
+            }
+          }
+        }
+      }
+    }
+  },
+  "services": {},
   "title": "Configurable LLM"
 }
