@@ -600,38 +600,45 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
                     ): str,
                 }
             )
-            response = await client.messages.create(
-                model=cast(str, DEFAULT[CONF_CHAT_MODEL]),
-                messages=[
-                    {
-                        "role": "user",
-                        "content": "Where are the following coordinates located: "
-                        f"({zone_home.attributes[ATTR_LATITUDE]},"
-                        f" {zone_home.attributes[ATTR_LONGITUDE]})?",
-                    }
-                ],
-                max_tokens=cast(int, DEFAULT[CONF_MAX_TOKENS]),
-                output_config={
-                    "format": {
-                        "type": "json_schema",
-                        "schema": {
-                            **convert(location_schema),
-                            "additionalProperties": False,
-                        },
-                    }
-                },
-            )
-            _LOGGER.debug("Model response: %s", response.content)
-            location_data = location_schema(
-                json.loads(
-                    "".join(
-                        block.text
-                        for block in response.content
-                        if isinstance(block, anthropic.types.TextBlock)
-                    )
+            try:
+                response = await client.messages.create(
+                    model=cast(str, DEFAULT[CONF_CHAT_MODEL]),
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": "Where are the following coordinates located: "
+                            f"({zone_home.attributes[ATTR_LATITUDE]},"
+                            f" {zone_home.attributes[ATTR_LONGITUDE]})?",
+                        }
+                    ],
+                    max_tokens=cast(int, DEFAULT[CONF_MAX_TOKENS]),
+                    output_config={
+                        "format": {
+                            "type": "json_schema",
+                            "schema": {
+                                **convert(location_schema),
+                                "additionalProperties": False,
+                            },
+                        }
+                    },
                 )
-                or {}
-            )
+                _LOGGER.debug("Model response: %s", response.content)
+                location_data = location_schema(
+                    json.loads(
+                        "".join(
+                            block.text
+                            for block in response.content
+                            if isinstance(block, anthropic.types.TextBlock)
+                        )
+                    )
+                    or {}
+                )
+            except (json.JSONDecodeError, ValueError, KeyError) as err:
+                _LOGGER.warning("Failed to parse location data from model: %s", err)
+                location_data = {}
+            except anthropic.AnthropicError as err:
+                _LOGGER.warning("Failed to get location data from model: %s", err)
+                location_data = {}
 
         if self.hass.config.country:
             location_data[CONF_WEB_SEARCH_COUNTRY] = self.hass.config.country
