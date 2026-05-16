@@ -41,7 +41,7 @@ class PromptCaching(StrEnum):
 MIN_THINKING_BUDGET = 1024
 
 DEFAULT = {
-    CONF_CHAT_MODEL: "claude-haiku-4-5",
+    CONF_CHAT_MODEL: "claude-3-5-haiku-20241022",  # More widely supported model ID
     CONF_CODE_EXECUTION: False,
     CONF_MAX_TOKENS: 3000,
     CONF_PROMPT_CACHING: PromptCaching.PROMPT.value,

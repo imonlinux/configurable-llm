@@ -1,5 +1,6 @@
 """Config flow for Configurable LLM integration."""
 
+import datetime
 from collections.abc import Mapping
 import json
 import logging
@@ -137,7 +138,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
             # Try a minimal API call to verify credentials work
             _LOGGER.debug(f"Trying minimal API call to {base_url}")
             await client.messages.create(
-                model="claude-3-haiku-20240307",
+                model="claude-3-5-haiku-20241022",  # More widely supported model
                 max_tokens=1,
                 messages=[{"role": "user", "content": "test"}],
                 timeout=10.0
@@ -355,12 +356,23 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
         errors: dict[str, str] = {}
         description_placeholders: dict[str, str] = {}
 
+        # Get available models or provide fallback options
+        model_list = self._get_model_list()
+        if not model_list:
+            # If no models are available, provide common fallback options
+            _LOGGER.warning("No models available from API, using fallback options")
+            model_list = [
+                SelectOptionDict(label="Claude 3.5 Sonnet", value="claude-3-5-sonnet-20241022"),
+                SelectOptionDict(label="Claude 3.5 Haiku", value="claude-3-5-haiku-20241022"),
+                SelectOptionDict(label="Claude 3 Opus", value="claude-3-opus-20240229"),
+            ]
+
         step_schema: VolDictType = {
             vol.Optional(
                 CONF_CHAT_MODEL,
-                default=DEFAULT[CONF_CHAT_MODEL],
+                default=self.options.get(CONF_CHAT_MODEL, model_list[0]["value"]),
             ): SelectSelector(
-                SelectSelectorConfig(options=self._get_model_list(), custom_value=True)
+                SelectSelectorConfig(options=model_list, custom_value=True)
             ),
             vol.Optional(
                 CONF_PROMPT_CACHING,
@@ -391,9 +403,14 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
                 except anthropic.NotFoundError:
                     errors[CONF_CHAT_MODEL] = "model_not_found"
                 except anthropic.AnthropicError as err:
-                    errors[CONF_CHAT_MODEL] = "api_error"
-                    description_placeholders["message"] = (
-                        err.message if isinstance(err, anthropic.APIError) else str(err)
+                    # Don't fail the whole config if model lookup fails
+                    _LOGGER.warning("Could not fetch model info: %s", err)
+                    # Use safe defaults instead of showing error
+                    self.model_info = anthropic.types.ModelInfo(
+                        type="model",
+                        id=self.options[CONF_CHAT_MODEL],
+                        created_at=datetime.datetime(1970, 1, 1, tzinfo=datetime.UTC),
+                        display_name=self.options[CONF_CHAT_MODEL],
                     )
 
             if not errors:
@@ -404,7 +421,7 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
             data_schema=self.add_suggested_values_to_schema(
                 vol.Schema(step_schema), self.options
             ),
-            errors=errors,
+            errors=errors or None,
             description_placeholders=description_placeholders,
         )
 
