@@ -1,0 +1,25 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to LLM API",
+        "description": "Set up your configurable LLM API connection. Works with Anthropic-compatible APIs including the official API, z.ai, and other compatible services.",
+        "data": {
+          "api_key": "API Key",
+          "base_url": "API Base URL"
+        },
+        "data_description": {
+          "api_key": "Enter your API key for the LLM service.",
+          "base_url": "Enter the base URL for your LLM API endpoint. Default is Anthropic's official API. Use z.ai or other compatible services by entering their base URL."
+        }
+      }
+    },
+    "error": {
+      "authentication_error": "Authentication failed. Please check your API key.",
+      "cannot_connect": "Failed to connect to the API. Please check your base URL and network connection.",
+      "timeout_connect": "Connection timeout. The API took too long to respond.",
+      "unknown": "An unexpected error occurred."
+    }
+  },
+  "title": "Configurable LLM"
+}
