@@ -30,22 +30,49 @@ A custom Home Assistant component that provides configurable LLM (Large Language
 
 ## 📦 Installation
 
-### Option 1: Manual Installation
+### Option 1: Via HACS (Recommended)
 
-1. **Copy the component to Home Assistant:**
+[![Open your Home Assistant instance and open the repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=imonlinux&repository=configurable-llm-integration&category=integration)
+
+1. **Install HACS** if you haven't already:
    ```bash
-   cp -r ~/repos/configurable-llm-integration/custom_components/configurable_llm /path/to/homeassistant/custom_components/
+   wget -O - https://get.hacs.xyz | bash -
    ```
 
-2. **Restart Home Assistant**
+2. **Add this repository to HACS:**
+   - Open HACS in Home Assistant
+   - Go to Integrations → Click the three dots (⋮) → "Custom repositories"
+   - Add: `https://github.com/imonlinux/configurable-llm-integration`
+   - Category: "Integration"
 
-3. **Add the integration:**
+3. **Install the integration:**
+   - In HACS, search for "Configurable LLM Integration"
+   - Click "Download" → "Install"
+   - Restart Home Assistant when prompted
+
+4. **Configure the integration:**
+   - Go to Settings → Devices & Services → Add Integration
+   - Search for "Configurable LLM"
+   - Configure with your API provider details (see Configuration section)
+
+### Option 2: Manual Installation
+
+1. **Download the latest release:**
+   ```bash
+   wget https://github.com/imonlinux/configurable-llm-integration/releases/latest/download/configurable_llm.zip
+   ```
+
+2. **Extract to your Home Assistant configuration:**
+   ```bash
+   unzip configurable_llm.zip -d /path/to/homeassistant/custom_components/
+   ```
+
+3. **Restart Home Assistant**
+
+4. **Add the integration:**
    - Go to Settings → Devices & Services → Add Integration
    - Search for "Configurable LLM"
    - Configure with your API provider details
-
-### Option 2: HACS Installation
-If added to HACS in the future, install through the HACS interface.
 
 ## ⚙️ Configuration
 
@@ -78,6 +105,19 @@ Base URL: (leave blank for default)
 API Key: any-key
 Base URL: http://localhost:8080/v1
 ```
+
+## 🔄 Updating
+
+### Via HACS
+- Open HACS → Integrations
+- Click "Configurable LLM Integration"
+- Click "Update" if a new version is available
+- Restart Home Assistant when prompted
+
+### Manual Update
+1. Download the [latest release](https://github.com/imonlinux/configurable-llm-integration/releases/latest)
+2. Extract and replace the files in `custom_components/configurable_llm/`
+3. Restart Home Assistant
 
 ## 📚 Features
 
@@ -119,6 +159,24 @@ configurable_llm/
 - Configurable base URL via `base_url` parameter
 - Maintains compatibility with Anthropic's API specification
 - Supports all standard conversation and AI task features
+
+## 🗑️ Uninstalling
+
+### Via HACS
+1. Go to Settings → Devices & Services
+2. Find "Configurable LLM Integration" → Click the three dots (⋮) → "Delete"
+3. Open HACS → Integrations → "Configurable LLM Integration"
+4. Click the three dots (⋮) → "Uninstall"
+5. Restart Home Assistant
+
+### Manual Removal
+1. Go to Settings → Devices & Services
+2. Find "Configurable LLM Integration" → Click the three dots (⋮) → "Delete"
+3. Delete the component folder:
+   ```bash
+   rm -rf /path/to/homeassistant/custom_components/configurable_llm
+   ```
+4. Restart Home Assistant
 
 ## 🔍 Troubleshooting
 
