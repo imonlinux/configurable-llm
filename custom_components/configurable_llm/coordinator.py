@@ -26,6 +26,12 @@ _model_short_form = re.compile(r"[^\d]-\d$")
 @callback
 def model_alias(model_id: str) -> str:
     """Resolve alias from versioned model name."""
+    # Preserve original model ID for non-Anthropic models
+    # Check if this looks like an Anthropic model (starts with claude-)
+    if not model_id.startswith("claude-"):
+        return model_id  # Return as-is for alternative providers
+
+    # Process Anthropic model names normally
     if model_id[-2:-1] != "-" and not model_id.endswith("-preview"):
         model_id = model_id[:-9]
     if _model_short_form.search(model_id):

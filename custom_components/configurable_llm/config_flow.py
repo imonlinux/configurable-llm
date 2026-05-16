@@ -588,7 +588,7 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
         return [
             SelectOptionDict(
                 label=model_info.display_name,
-                value=model_alias(model_info.id),
+                value=model_info.id,  # Use original model ID to avoid aliasing issues
             )
             for model_info in coordinator.data or []
         ]
