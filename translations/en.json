@@ -1,0 +1,256 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to LLM API",
+        "description": "Set up your Configurable LLM connection. This integration works with the official Anthropic API and any Anthropic-compatible endpoint, including z.ai and self-hosted servers.",
+        "data": {
+          "api_key": "API key",
+          "base_url": "API base URL"
+        },
+        "data_description": {
+          "api_key": "Your API key for the LLM service. For the official Anthropic API this starts with `sk-ant-`. Alternative providers issue their own keys.",
+          "base_url": "The base URL of your LLM API endpoint. Leave as the default for the official Anthropic API, or replace with your provider's URL (e.g., `https://api.z.ai/api/anthropic` for z.ai, or `http://localhost:8080/v1/` for a local server)."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate with the LLM API",
+        "description": "Your API key is no longer valid. Please enter a new API key for {name}.",
+        "data": {
+          "api_key": "API key"
+        },
+        "data_description": {
+          "api_key": "Your API key for the LLM service. For the official Anthropic API this starts with `sk-ant-`. Alternative providers issue their own keys."
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Service is already configured",
+      "reauth_successful": "Re-authentication was successful"
+    },
+    "error": {
+      "authentication_error": "Authentication failed. Please check that your API key is correct and has not expired.",
+      "cannot_connect": "Failed to connect",
+      "timeout_connect": "Timeout establishing connection",
+      "invalid_url_format": "Invalid API endpoint. The URL did not return a valid API response. Make sure the base URL is correct for your provider and includes the right path and (where required) a trailing slash.",
+      "unknown": "Unexpected error"
+    }
+  },
+  "config_subentries": {
+    "conversation": {
+      "initiate_flow": {
+        "user": "Add conversation agent",
+        "reconfigure": "Reconfigure conversation agent"
+      },
+      "entry_type": "Conversation agent",
+      "step": {
+        "init": {
+          "title": "Basic settings",
+          "description": "Configure how this conversation agent behaves and which Home Assistant features it can use.",
+          "data": {
+            "name": "Name",
+            "prompt": "Instructions",
+            "llm_hass_api": "Control Home Assistant",
+            "recommended": "Recommended model settings"
+          },
+          "data_description": {
+            "name": "The name shown for this conversation agent in Home Assistant.",
+            "prompt": "Instructions telling the model how to respond. Supports Home Assistant templating.",
+            "llm_hass_api": "Select which Home Assistant APIs the model can use to control your devices. Only entities you have exposed will be accessible.",
+            "recommended": "Use the recommended model and settings. Turn off to customise the model, token limits, thinking, web search and other advanced options."
+          }
+        },
+        "advanced": {
+          "title": "Advanced settings",
+          "description": "Choose which model to use and how prompt caching should work.",
+          "data": {
+            "chat_model": "Model",
+            "prompt_caching": "Caching strategy"
+          },
+          "data_description": {
+            "chat_model": "The model used to generate responses. You can pick from the list or type a model ID for providers that don't expose a list endpoint.",
+            "prompt_caching": "Optimise cost and response time. **Disabled** sends everything fresh each time, **System prompt** caches the system prompt and tools, and **Full** also caches every user message."
+          }
+        },
+        "model": {
+          "title": "Model-specific options",
+          "description": "Fine-tune the selected model. Available options depend on what the model supports.",
+          "data": {
+            "max_tokens": "Maximum tokens to return in response",
+            "thinking_budget": "Thinking budget",
+            "thinking_effort": "Thinking effort",
+            "code_execution": "Code execution",
+            "web_search": "Web search",
+            "web_search_max_uses": "Maximum web searches",
+            "user_location": "Include home location",
+            "tool_search": "Tool search"
+          },
+          "data_description": {
+            "max_tokens": "Maximum length of each response, in tokens.",
+            "thinking_budget": "Tokens reserved for the model's internal reasoning, out of the total maximum. Set to 1024 or higher to enable extended thinking.",
+            "thinking_effort": "How much effort the model should spend reasoning. Higher values produce more thorough but slower (and more expensive) answers.",
+            "code_execution": "Allow the model to execute code in a secure sandbox, useful for data analysis and complex calculations.",
+            "web_search": "Allow the model to search the web for current information beyond its training cutoff.",
+            "web_search_max_uses": "Limit the number of web searches the model can perform in a single response.",
+            "user_location": "Use your Home Assistant home location to localise web search results.",
+            "tool_search": "Discover Home Assistant tools on demand instead of loading them all upfront. Useful when many tools are exposed."
+          }
+        }
+      },
+      "error": {
+        "model_not_found": "The selected model was not found. Check the model ID or try a different one.",
+        "thinking_budget_too_large": "The thinking budget must be smaller than the maximum number of tokens.",
+        "api_error": "Unable to get model info: {message}"
+      },
+      "abort": {
+        "entry_not_loaded": "Cannot add or change configuration while the integration is disabled. Re-enable it and try again.",
+        "reconfigure_successful": "Re-configuration was successful"
+      }
+    },
+    "ai_task_data": {
+      "initiate_flow": {
+        "user": "Add AI task",
+        "reconfigure": "Reconfigure AI task"
+      },
+      "entry_type": "AI task",
+      "step": {
+        "init": {
+          "title": "Basic settings",
+          "description": "Configure this AI task entity.",
+          "data": {
+            "name": "Name",
+            "recommended": "Recommended model settings"
+          },
+          "data_description": {
+            "name": "The name shown for this AI task in Home Assistant.",
+            "recommended": "Use the recommended model and settings. Turn off to customise the model and advanced options."
+          }
+        },
+        "advanced": {
+          "title": "Advanced settings",
+          "description": "Choose which model to use and how prompt caching should work.",
+          "data": {
+            "chat_model": "Model",
+            "prompt_caching": "Caching strategy"
+          },
+          "data_description": {
+            "chat_model": "The model used to generate responses. You can pick from the list or type a model ID for providers that don't expose a list endpoint.",
+            "prompt_caching": "Optimise cost and response time. **Disabled** sends everything fresh each time, **System prompt** caches the system prompt and tools, and **Full** also caches every user message."
+          }
+        },
+        "model": {
+          "title": "Model-specific options",
+          "description": "Fine-tune the selected model. Available options depend on what the model supports.",
+          "data": {
+            "max_tokens": "Maximum tokens to return in response",
+            "thinking_budget": "Thinking budget",
+            "thinking_effort": "Thinking effort",
+            "code_execution": "Code execution",
+            "web_search": "Web search",
+            "web_search_max_uses": "Maximum web searches",
+            "user_location": "Include home location",
+            "tool_search": "Tool search"
+          },
+          "data_description": {
+            "max_tokens": "Maximum length of each response, in tokens.",
+            "thinking_budget": "Tokens reserved for the model's internal reasoning, out of the total maximum. Set to 1024 or higher to enable extended thinking.",
+            "thinking_effort": "How much effort the model should spend reasoning. Higher values produce more thorough but slower (and more expensive) answers.",
+            "code_execution": "Allow the model to execute code in a secure sandbox, useful for data analysis and complex calculations.",
+            "web_search": "Allow the model to search the web for current information beyond its training cutoff.",
+            "web_search_max_uses": "Limit the number of web searches the model can perform in a single response.",
+            "user_location": "Use your Home Assistant home location to localise web search results.",
+            "tool_search": "Discover Home Assistant tools on demand instead of loading them all upfront. Useful when many tools are exposed."
+          }
+        }
+      },
+      "error": {
+        "model_not_found": "The selected model was not found. Check the model ID or try a different one.",
+        "thinking_budget_too_large": "The thinking budget must be smaller than the maximum number of tokens.",
+        "api_error": "Unable to get model info: {message}"
+      },
+      "abort": {
+        "entry_not_loaded": "Cannot add or change configuration while the integration is disabled. Re-enable it and try again.",
+        "reconfigure_successful": "Re-configuration was successful"
+      }
+    }
+  },
+  "selector": {
+    "prompt_caching": {
+      "options": {
+        "off": "Disabled",
+        "prompt": "System prompt",
+        "automatic": "Full"
+      }
+    },
+    "thinking_effort": {
+      "options": {
+        "none": "None",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "xhigh": "X-High",
+        "max": "Max"
+      }
+    }
+  },
+  "exceptions": {
+    "api_authentication_error": {
+      "message": "Authentication with the LLM API failed: {message}"
+    },
+    "api_error": {
+      "message": "Error communicating with the LLM API: {message}"
+    },
+    "api_refusal": {
+      "message": "The model refused to generate a response. Try rewording your request."
+    },
+    "unexpected_chat_log_content": {
+      "message": "Unexpected content type in chat log: {type}"
+    },
+    "unexpected_stream_object": {
+      "message": "Unexpected response stream from the API. The endpoint may not be fully Anthropic-compatible."
+    },
+    "system_message_not_found": {
+      "message": "No system message was found in the chat log."
+    },
+    "user_message_not_found": {
+      "message": "No user message was found in the chat log when preparing attachments."
+    },
+    "wrong_file_path": {
+      "message": "File not found: {file_path}"
+    },
+    "wrong_file_type": {
+      "message": "The file {file_path} has type {mime_type}, which is not supported by model {model}."
+    },
+    "response_not_found": {
+      "message": "No assistant response was returned by the model."
+    },
+    "json_parse_error": {
+      "message": "Failed to parse the model's response as JSON. The model may not have returned valid structured data."
+    },
+    "subentry_not_found": {
+      "message": "The configuration entry being updated could not be found. It may have been removed."
+    },
+    "unknown_issue_id": {
+      "message": "Unknown repair issue."
+    }
+  },
+  "issues": {
+    "model_deprecated": {
+      "title": "Deprecated LLM model in use",
+      "fix_flow": {
+        "step": {
+          "init": {
+            "title": "Update deprecated model",
+            "description": "The model **{model}** used by **{subentry_name}** ({subentry_type}) in **{entry_name}** is deprecated and will be retired on **{retirement_date}**. Please select a replacement model.",
+            "data": {
+              "chat_model": "Model"
+            },
+            "data_description": {
+              "chat_model": "Pick a non-deprecated model. A suggestion in the same family (Haiku / Sonnet / Opus) has been pre-filled."
+            }
+          }
+        }
+      }
+    }
+  }
+}
