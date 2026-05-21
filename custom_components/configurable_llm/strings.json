@@ -83,6 +83,8 @@
             "web_search": "Web search",
             "web_search_max_uses": "Maximum web searches",
             "user_location": "Include home location",
+            "web_fetch": "Web fetch",
+            "web_fetch_max_uses": "Maximum web fetches",
             "tool_search": "Tool search"
           },
           "data_description": {
@@ -93,6 +95,8 @@
             "web_search": "Allow the model to search the web for current information beyond its training cutoff.",
             "web_search_max_uses": "Limit the number of web searches the model can perform in a single response.",
             "user_location": "Use your Home Assistant home location to localise web search results.",
+            "web_fetch": "Allow the model to retrieve full content from specified web pages and PDF documents to augment its context with live web content.",
+            "web_fetch_max_uses": "Limit the number of web fetches the model can perform in a single response.",
             "tool_search": "Discover Home Assistant tools on demand instead of loading them all upfront. Useful when many tools are exposed."
           }
         }
@@ -149,6 +153,8 @@
             "web_search": "Web search",
             "web_search_max_uses": "Maximum web searches",
             "user_location": "Include home location",
+            "web_fetch": "Web fetch",
+            "web_fetch_max_uses": "Maximum web fetches",
             "tool_search": "Tool search"
           },
           "data_description": {
@@ -159,6 +165,8 @@
             "web_search": "Allow the model to search the web for current information beyond its training cutoff.",
             "web_search_max_uses": "Limit the number of web searches the model can perform in a single response.",
             "user_location": "Use your Home Assistant home location to localise web search results.",
+            "web_fetch": "Allow the model to retrieve full content from specified web pages and PDF documents to augment its context with live web content.",
+            "web_fetch_max_uses": "Limit the number of web fetches the model can perform in a single response.",
             "tool_search": "Discover Home Assistant tools on demand instead of loading them all upfront. Useful when many tools are exposed."
           }
         }

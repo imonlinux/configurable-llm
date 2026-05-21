@@ -70,6 +70,9 @@ from anthropic.types import (
     ToolUseBlock,
     ToolUseBlockParam,
     Usage,
+    WebFetchTool20250910Param,
+    WebFetchTool20260209Param,
+    WebFetchToolResultBlock,
     WebSearchTool20250305Param,
     WebSearchTool20260209Param,
     WebSearchToolResultBlock,
@@ -97,6 +100,12 @@ from anthropic.types.tool_search_tool_result_block_param import (
     Content as ToolSearchToolResultBlockParamContentParam,
 )
 from anthropic.types.tool_use_block import Caller
+from anthropic.types.web_fetch_tool_result_block import (
+    Content as WebFetchToolResultBlockContent,
+)
+from anthropic.types.web_fetch_tool_result_block_param import (
+    Content as WebFetchToolResultBlockParamContentParam,
+)
 import voluptuous as vol
 from voluptuous_openapi import convert
 
@@ -118,6 +127,8 @@ from .const import (
     CONF_THINKING_BUDGET,
     CONF_THINKING_EFFORT,
     CONF_TOOL_SEARCH,
+    CONF_WEB_FETCH,
+    CONF_WEB_FETCH_MAX_USES,
     CONF_WEB_SEARCH,
     CONF_WEB_SEARCH_CITY,
     CONF_WEB_SEARCH_COUNTRY,
@@ -286,6 +297,15 @@ def _convert_content(  # noqa: C901
                     "tool_use_id": content.tool_call_id,
                     "content": cast(
                         ToolSearchToolResultBlockParamContentParam,
+                        content.tool_result,
+                    ),
+                }
+            elif content.tool_name == "web_fetch":
+                tool_result_block = {
+                    "type": "web_fetch_tool_result",
+                    "tool_use_id": content.tool_call_id,
+                    "content": cast(
+                        WebFetchToolResultBlockParamContentParam,
                         content.tool_result,
                     ),
                 }
@@ -609,6 +629,7 @@ class ConfigurableLLMDeltaStream:
         if isinstance(
             content_block,
             (
+                WebFetchToolResultBlock,
                 WebSearchToolResultBlock,
                 CodeExecutionToolResultBlock,
                 BashCodeExecutionToolResultBlock,
@@ -724,13 +745,15 @@ class ConfigurableLLMDeltaStream:
         self,
         tool_use_id: str,
         tool_name: Literal[
+            "web_fetch_tool_result",
             "web_search_tool_result",
             "code_execution_tool_result",
             "bash_code_execution_tool_result",
             "text_editor_code_execution_tool_result",
             "tool_search_tool_result",
         ],
-        content: WebSearchToolResultBlockContent
+        content: WebFetchToolResultBlockContent
+        | WebSearchToolResultBlockContent
         | CodeExecutionToolResultBlockContent
         | BashCodeExecutionToolResultBlockContent
         | TextEditorCodeExecutionToolResultBlockContent
@@ -980,12 +1003,12 @@ class ConfigurableLLMBaseEntity(CoordinatorEntity[ConfigurableLLMCoordinator]):
             ]
 
         if options[CONF_CODE_EXECUTION]:
-            # The `web_search_20260209` tool automatically enables
-            # `code_execution_20260120` tool
+            # The `web_search_20260209` and `web_fetch_20260209` tools
+            # automatically enable `code_execution_20260120` tool
             if (
                 not self.model_info.capabilities
                 or not self.model_info.capabilities.code_execution.supported
-                or not options[CONF_WEB_SEARCH]
+                or (not options[CONF_WEB_SEARCH] and not options[CONF_WEB_FETCH])
             ):
                 tools.append(
                     CodeExecutionTool20250825Param(
@@ -1022,6 +1045,28 @@ class ConfigurableLLMBaseEntity(CoordinatorEntity[ConfigurableLLMCoordinator]):
                     "timezone": options.get(CONF_WEB_SEARCH_TIMEZONE, ""),
                 }
             tools.append(web_search)
+
+        if options[CONF_WEB_FETCH]:
+            if (
+                not self.model_info.capabilities
+                or not self.model_info.capabilities.code_execution.supported
+                or not options[CONF_CODE_EXECUTION]
+            ):
+                tools.append(
+                    WebFetchTool20250910Param(
+                        name="web_fetch",
+                        type="web_fetch_20250910",
+                        max_uses=options[CONF_WEB_FETCH_MAX_USES],
+                    )
+                )
+            else:
+                tools.append(
+                    WebFetchTool20260209Param(
+                        name="web_fetch",
+                        type="web_fetch_20260209",
+                        max_uses=options[CONF_WEB_FETCH_MAX_USES],
+                    )
+                )
 
         # Handle attachments by adding them to the last user message
         last_content = chat_log.content[-1]

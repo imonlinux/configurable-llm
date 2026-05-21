@@ -50,6 +50,8 @@ from .const import (
     CONF_THINKING_BUDGET,
     CONF_THINKING_EFFORT,
     CONF_TOOL_SEARCH,
+    CONF_WEB_FETCH,
+    CONF_WEB_FETCH_MAX_USES,
     CONF_WEB_SEARCH,
     CONF_WEB_SEARCH_CITY,
     CONF_WEB_SEARCH_COUNTRY,
@@ -487,6 +489,14 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
                     CONF_WEB_SEARCH_USER_LOCATION,
                     default=DEFAULT[CONF_WEB_SEARCH_USER_LOCATION],
                 ): bool,
+                vol.Optional(
+                    CONF_WEB_FETCH,
+                    default=DEFAULT[CONF_WEB_FETCH],
+                ): bool,
+                vol.Optional(
+                    CONF_WEB_FETCH_MAX_USES,
+                    default=DEFAULT[CONF_WEB_FETCH_MAX_USES],
+                ): cv.positive_int,
             }
         )
 
