@@ -74,7 +74,7 @@
         },
         "model": {
           "title": "Model-specific options",
-          "description": "Fine-tune the selected model. Available options depend on what the model supports.",
+          "description": "Fine-tune the selected model. Available options depend on what the model supports. Tool features such as web search, web fetch, and code execution are not implemented by every provider — if you enable one and your provider doesn't support it, the model will return an error at runtime.",
           "data": {
             "max_tokens": "Maximum tokens to return in response",
             "thinking_budget": "Thinking budget",
@@ -144,7 +144,7 @@
         },
         "model": {
           "title": "Model-specific options",
-          "description": "Fine-tune the selected model. Available options depend on what the model supports.",
+          "description": "Fine-tune the selected model. Available options depend on what the model supports. Tool features such as web search, web fetch, and code execution are not implemented by every provider — if you enable one and your provider doesn't support it, the model will return an error at runtime.",
           "data": {
             "max_tokens": "Maximum tokens to return in response",
             "thinking_budget": "Thinking budget",
