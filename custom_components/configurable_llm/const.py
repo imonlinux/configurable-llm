@@ -10,7 +10,6 @@ DEFAULT_CONVERSATION_NAME = "LLM conversation"
 DEFAULT_AI_TASK_NAME = "LLM AI Task"
 
 CONF_RECOMMENDED = "recommended"
-CONF_PROMPT = "prompt"
 CONF_CHAT_MODEL = "chat_model"
 CONF_CODE_EXECUTION = "code_execution"
 CONF_MAX_TOKENS = "max_tokens"
