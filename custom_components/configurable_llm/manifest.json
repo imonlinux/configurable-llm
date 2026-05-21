@@ -1,14 +1,15 @@
 {
   "domain": "configurable_llm",
   "name": "Configurable LLM",
+  "after_dependencies": ["assist_pipeline", "intent"],
   "codeowners": ["@imonlinux"],
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["conversation"],
   "documentation": "https://github.com/imonlinux/configurable-llm",
   "integration_type": "service",
-  "iot_class": "cloud_poll",
+  "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/imonlinux/configurable-llm/issues",
-  "quality_scale": "platinum",
+  "quality_scale": "silver",
   "requirements": ["anthropic>=0.40.0"],
-  "version": "1.0.1"
+  "version": "1.0.2"
 }

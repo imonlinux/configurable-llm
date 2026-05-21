@@ -1,6 +1,5 @@
 """Config flow for Configurable LLM integration."""
 
-import datetime
 from collections.abc import Mapping
 import json
 import logging
@@ -27,8 +26,7 @@ from homeassistant.const import (
     CONF_NAME,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import llm
-import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers import config_validation as cv, llm
 from homeassistant.helpers.httpx_client import get_async_client
 from homeassistant.helpers.selector import (
     NumberSelector,
@@ -61,14 +59,13 @@ from .const import (
     CONF_WEB_SEARCH_USER_LOCATION,
     DEFAULT,
     DEFAULT_AI_TASK_NAME,
-    DEFAULT_CONVERSATION_NAME,
     DEFAULT_BASE_URL,
+    DEFAULT_CONVERSATION_NAME,
     DOMAIN,
     MIN_THINKING_BUDGET,
     TOOL_SEARCH_UNSUPPORTED_MODELS,
     PromptCaching,
 )
-from .coordinator import model_alias
 
 if TYPE_CHECKING:
     from . import ConfigurableLLMConfigEntry
@@ -79,6 +76,12 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_API_KEY): str,
         vol.Optional(CONF_BASE_URL, default=DEFAULT_BASE_URL): str,
+    }
+)
+
+STEP_REAUTH_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_API_KEY): str,
     }
 )
 
@@ -99,54 +102,16 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
     base_url = data.get(CONF_BASE_URL, DEFAULT_BASE_URL)
-    _LOGGER.info(f"Validating connection to {base_url}")
 
-    # Validate URL format
     if not base_url.startswith(("http://", "https://")):
         raise ValueError("Base URL must start with http:// or https://")
 
     client = anthropic.AsyncAnthropic(
         api_key=data[CONF_API_KEY],
         base_url=base_url,
-        http_client=get_async_client(hass)
+        http_client=get_async_client(hass),
     )
-
-    try:
-        _LOGGER.debug(f"Attempting models list for {base_url}")
-        await client.models.list(timeout=10.0)
-        _LOGGER.info(f"Models list succeeded for {base_url}")
-    except anthropic.APIStatusError as e:
-        # Check if response is HTML (indicates wrong URL/format)
-        if hasattr(e, 'response') and hasattr(e.response, 'text'):
-            response_text = e.response.text
-            if '<html>' in response_text.lower() or '<!doctype html>' in response_text.lower():
-                _LOGGER.error(f"Received HTML response instead of JSON. Base URL: {base_url}. Response: {response_text[:200]}")
-                raise ValueError(
-                    f"Invalid API endpoint. The URL '{base_url}' returned a webpage instead of API response. "
-                    f"This usually means the base URL is incorrect for your provider. "
-                    f"Please check your provider's API documentation for the correct base URL. "
-                    f"Common issues:\n"
-                    f"- Wrong domain or subdomain\n"
-                    f"- Incorrect API version path\n"
-                    f"- Provider may use different URL structure than Anthropic"
-                )
-        raise
-    except Exception as e:
-        _LOGGER.warning(f"Models list endpoint failed for {base_url}: {e}")
-        # Some providers don't support models list, try a simple API call instead
-        try:
-            # Try a minimal API call to verify credentials work
-            _LOGGER.debug(f"Trying minimal API call to {base_url}")
-            await client.messages.create(
-                model="claude-3-5-haiku-20241022",  # More widely supported model
-                max_tokens=1,
-                messages=[{"role": "user", "content": "test"}],
-                timeout=10.0
-            )
-            _LOGGER.info(f"API validation succeeded for {base_url}")
-        except Exception as api_error:
-            _LOGGER.error(f"API validation failed for {base_url}: {api_error}")
-            raise api_error
+    await client.models.list(timeout=10.0)
 
 
 class ConfigurableLLMConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -162,17 +127,21 @@ class ConfigurableLLMConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            self._async_abort_entries_match(user_input)
+            # On reauth the existing entry already has a base_url; merge it in so
+            # validation can run against the same endpoint.
+            if self.source == SOURCE_REAUTH:
+                user_input = {
+                    **self._get_reauth_entry().data,
+                    **user_input,
+                }
+            self._async_abort_entries_match({CONF_API_KEY: user_input[CONF_API_KEY]})
             try:
                 await validate_input(self.hass, user_input)
-            except anthropic.APITimeoutError as e:
-                _LOGGER.error(f"Timeout error connecting to API: {e}")
+            except anthropic.APITimeoutError:
                 errors["base"] = "timeout_connect"
-            except anthropic.APIConnectionError as e:
-                _LOGGER.error(f"Connection error: {e}")
+            except anthropic.APIConnectionError:
                 errors["base"] = "cannot_connect"
             except anthropic.APIStatusError as e:
-                _LOGGER.error(f"API status error: {e}")
                 errors["base"] = "unknown"
                 if (
                     isinstance(e.body, dict)
@@ -180,12 +149,10 @@ class ConfigurableLLMConfigFlow(ConfigFlow, domain=DOMAIN):
                     and error.get("type") == "authentication_error"
                 ):
                     errors["base"] = "authentication_error"
-            except ValueError as e:
-                _LOGGER.error(f"URL format error: {e}")
+            except ValueError:
                 errors["base"] = "invalid_url_format"
-                errors[CONF_BASE_URL] = str(e)
-            except Exception as e:
-                _LOGGER.exception(f"Unexpected exception during validation: {e}")
+            except Exception:
+                _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
             else:
                 if self.source == SOURCE_REAUTH:
@@ -214,20 +181,37 @@ class ConfigurableLLMConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user",
             data_schema=STEP_USER_DATA_SCHEMA,
-            errors=errors,
+            errors=errors or None,
         )
 
-    def _get_reauth_entry(self) -> ConfigurableLLMConfigEntry:
+    async def async_step_reauth(
+        self, entry_data: Mapping[str, Any]
+    ) -> ConfigFlowResult:
+        """Perform reauth upon an API authentication error."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Dialog that informs the user that reauth is required."""
+        if not user_input:
+            return self.async_show_form(
+                step_id="reauth_confirm",
+                data_schema=STEP_REAUTH_DATA_SCHEMA,
+                description_placeholders={"name": self._get_reauth_entry().title},
+            )
+        return await self.async_step_user(user_input)
+
+    def _get_reauth_entry(self) -> "ConfigurableLLMConfigEntry":
         """Get the config entry that is being reauthenticated."""
-        # This should never happen, but we need to handle it
         entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
         assert entry is not None
-        return cast(ConfigurableLLMConfigEntry, entry)
+        return cast("ConfigurableLLMConfigEntry", entry)
 
     @classmethod
     @callback
     def async_get_supported_subentry_types(
-        cls, config_entry: ConfigurableLLMConfigEntry
+        cls, config_entry: "ConfigurableLLMConfigEntry"
     ) -> dict[str, type[ConfigSubentryFlow]]:
         """Return subentries supported by this integration."""
         return {
@@ -356,23 +340,12 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
         errors: dict[str, str] = {}
         description_placeholders: dict[str, str] = {}
 
-        # Get available models or provide fallback options
-        model_list = self._get_model_list()
-        if not model_list:
-            # If no models are available, provide common fallback options
-            _LOGGER.warning("No models available from API, using fallback options")
-            model_list = [
-                SelectOptionDict(label="Claude 3.5 Sonnet", value="claude-3-5-sonnet-20241022"),
-                SelectOptionDict(label="Claude 3.5 Haiku", value="claude-3-5-haiku-20241022"),
-                SelectOptionDict(label="Claude 3 Opus", value="claude-3-opus-20240229"),
-            ]
-
         step_schema: VolDictType = {
             vol.Optional(
                 CONF_CHAT_MODEL,
-                default=self.options.get(CONF_CHAT_MODEL, model_list[0]["value"]),
+                default=DEFAULT[CONF_CHAT_MODEL],
             ): SelectSelector(
-                SelectSelectorConfig(options=model_list, custom_value=True)
+                SelectSelectorConfig(options=self._get_model_list(), custom_value=True)
             ),
             vol.Optional(
                 CONF_PROMPT_CACHING,
@@ -403,14 +376,9 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
                 except anthropic.NotFoundError:
                     errors[CONF_CHAT_MODEL] = "model_not_found"
                 except anthropic.AnthropicError as err:
-                    # Don't fail the whole config if model lookup fails
-                    _LOGGER.warning("Could not fetch model info: %s", err)
-                    # Use safe defaults instead of showing error
-                    self.model_info = anthropic.types.ModelInfo(
-                        type="model",
-                        id=self.options[CONF_CHAT_MODEL],
-                        created_at=datetime.datetime(1970, 1, 1, tzinfo=datetime.UTC),
-                        display_name=self.options[CONF_CHAT_MODEL],
+                    errors[CONF_CHAT_MODEL] = "api_error"
+                    description_placeholders["message"] = (
+                        err.message if isinstance(err, anthropic.APIError) else str(err)
                     )
 
             if not errors:
@@ -512,7 +480,7 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
                 vol.Optional(
                     CONF_WEB_SEARCH_MAX_USES,
                     default=DEFAULT[CONF_WEB_SEARCH_MAX_USES],
-                ): int,
+                ): cv.positive_int,
                 vol.Optional(
                     CONF_WEB_SEARCH_USER_LOCATION,
                     default=DEFAULT[CONF_WEB_SEARCH_USER_LOCATION],
@@ -588,7 +556,7 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
         return [
             SelectOptionDict(
                 label=model_info.display_name,
-                value=model_info.id,  # Use original model ID to avoid aliasing issues
+                value=model_info.id,
             )
             for model_info in coordinator.data or []
         ]

@@ -17,23 +17,23 @@
         "title": "Reauthenticate with the LLM API",
         "description": "Your API key is no longer valid. Please enter a new API key for {name}.",
         "data": {
-          "api_key": "[%key:common::config_flow::data::api_key%]"
+          "api_key": "API key"
         },
         "data_description": {
-          "api_key": "[%key:component::configurable_llm::config::step::user::data_description::api_key%]"
+          "api_key": "Your API key for the LLM service. For the official Anthropic API this starts with `sk-ant-`. Alternative providers issue their own keys."
         }
       }
     },
     "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_service%]",
-      "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]"
+      "already_configured": "Service is already configured",
+      "reauth_successful": "Re-authentication was successful"
     },
     "error": {
       "authentication_error": "Authentication failed. Please check that your API key is correct and has not expired.",
-      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
-      "timeout_connect": "[%key:common::config_flow::error::timeout_connect%]",
+      "cannot_connect": "Failed to connect",
+      "timeout_connect": "Timeout establishing connection",
       "invalid_url_format": "Invalid API endpoint. The URL did not return a valid API response. Make sure the base URL is correct for your provider and includes the right path and (where required) a trailing slash.",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
+      "unknown": "Unexpected error"
     }
   },
   "config_subentries": {
@@ -104,7 +104,7 @@
       },
       "abort": {
         "entry_not_loaded": "Cannot add or change configuration while the integration is disabled. Re-enable it and try again.",
-        "reconfigure_successful": "[%key:common::config_flow::abort::reconfigure_successful%]"
+        "reconfigure_successful": "Re-configuration was successful"
       }
     },
     "ai_task_data": {
@@ -127,50 +127,50 @@
           }
         },
         "advanced": {
-          "title": "[%key:component::configurable_llm::config_subentries::conversation::step::advanced::title%]",
-          "description": "[%key:component::configurable_llm::config_subentries::conversation::step::advanced::description%]",
+          "title": "Advanced settings",
+          "description": "Choose which model to use and how prompt caching should work.",
           "data": {
-            "chat_model": "[%key:component::configurable_llm::config_subentries::conversation::step::advanced::data::chat_model%]",
-            "prompt_caching": "[%key:component::configurable_llm::config_subentries::conversation::step::advanced::data::prompt_caching%]"
+            "chat_model": "Model",
+            "prompt_caching": "Caching strategy"
           },
           "data_description": {
-            "chat_model": "[%key:component::configurable_llm::config_subentries::conversation::step::advanced::data_description::chat_model%]",
-            "prompt_caching": "[%key:component::configurable_llm::config_subentries::conversation::step::advanced::data_description::prompt_caching%]"
+            "chat_model": "The model used to generate responses. You can pick from the list or type a model ID for providers that don't expose a list endpoint.",
+            "prompt_caching": "Optimise cost and response time. **Disabled** sends everything fresh each time, **System prompt** caches the system prompt and tools, and **Full** also caches every user message."
           }
         },
         "model": {
-          "title": "[%key:component::configurable_llm::config_subentries::conversation::step::model::title%]",
-          "description": "[%key:component::configurable_llm::config_subentries::conversation::step::model::description%]",
+          "title": "Model-specific options",
+          "description": "Fine-tune the selected model. Available options depend on what the model supports.",
           "data": {
-            "max_tokens": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data::max_tokens%]",
-            "thinking_budget": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data::thinking_budget%]",
-            "thinking_effort": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data::thinking_effort%]",
-            "code_execution": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data::code_execution%]",
-            "web_search": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data::web_search%]",
-            "web_search_max_uses": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data::web_search_max_uses%]",
-            "user_location": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data::user_location%]",
-            "tool_search": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data::tool_search%]"
+            "max_tokens": "Maximum tokens to return in response",
+            "thinking_budget": "Thinking budget",
+            "thinking_effort": "Thinking effort",
+            "code_execution": "Code execution",
+            "web_search": "Web search",
+            "web_search_max_uses": "Maximum web searches",
+            "user_location": "Include home location",
+            "tool_search": "Tool search"
           },
           "data_description": {
-            "max_tokens": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data_description::max_tokens%]",
-            "thinking_budget": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data_description::thinking_budget%]",
-            "thinking_effort": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data_description::thinking_effort%]",
-            "code_execution": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data_description::code_execution%]",
-            "web_search": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data_description::web_search%]",
-            "web_search_max_uses": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data_description::web_search_max_uses%]",
-            "user_location": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data_description::user_location%]",
-            "tool_search": "[%key:component::configurable_llm::config_subentries::conversation::step::model::data_description::tool_search%]"
+            "max_tokens": "Maximum length of each response, in tokens.",
+            "thinking_budget": "Tokens reserved for the model's internal reasoning, out of the total maximum. Set to 1024 or higher to enable extended thinking.",
+            "thinking_effort": "How much effort the model should spend reasoning. Higher values produce more thorough but slower (and more expensive) answers.",
+            "code_execution": "Allow the model to execute code in a secure sandbox, useful for data analysis and complex calculations.",
+            "web_search": "Allow the model to search the web for current information beyond its training cutoff.",
+            "web_search_max_uses": "Limit the number of web searches the model can perform in a single response.",
+            "user_location": "Use your Home Assistant home location to localise web search results.",
+            "tool_search": "Discover Home Assistant tools on demand instead of loading them all upfront. Useful when many tools are exposed."
           }
         }
       },
       "error": {
-        "model_not_found": "[%key:component::configurable_llm::config_subentries::conversation::error::model_not_found%]",
-        "thinking_budget_too_large": "[%key:component::configurable_llm::config_subentries::conversation::error::thinking_budget_too_large%]",
-        "api_error": "[%key:component::configurable_llm::config_subentries::conversation::error::api_error%]"
+        "model_not_found": "The selected model was not found. Check the model ID or try a different one.",
+        "thinking_budget_too_large": "The thinking budget must be smaller than the maximum number of tokens.",
+        "api_error": "Unable to get model info: {message}"
       },
       "abort": {
-        "entry_not_loaded": "[%key:component::configurable_llm::config_subentries::conversation::abort::entry_not_loaded%]",
-        "reconfigure_successful": "[%key:common::config_flow::abort::reconfigure_successful%]"
+        "entry_not_loaded": "Cannot add or change configuration while the integration is disabled. Re-enable it and try again.",
+        "reconfigure_successful": "Re-configuration was successful"
       }
     }
   },
