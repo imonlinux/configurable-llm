@@ -1,260 +1,203 @@
 # Configurable LLM for Home Assistant
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Home Assistant](https://img.shields.io/badge/Home_Assistant-2024.1.0%2B-blue.svg)](https://www.home-assistant.io/)
-[![HACS](https://img.shields.io/badge/HACS-Pending-orange.svg)](https://hacs.xyz/)
+[![Home Assistant](https://img.shields.io/badge/Home_Assistant-2025.8%2B-blue.svg)](https://www.home-assistant.io/)
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz/)
 
-A custom Home Assistant component that provides configurable LLM (Large Language Model) integration with support for multiple API providers. Based on the official Anthropic integration, this component adds the ability to use alternative providers like z.ai or any Anthropic-compatible API.
+A Home Assistant integration that adds a conversation agent and AI task entity backed by any Anthropic-compatible API endpoint. Based on the official Home Assistant Anthropic integration, with a single key addition: a configurable base URL field so the same code works against the official Anthropic API, any Anthropic-compatible provider, or a self-hosted server.
 
-## 🎯 Key Features
+The integration covers everything the official Anthropic integration does (subentries, prompt caching, thinking budget, web search, web fetch, code execution, tool search, AI tasks) and stays in sync with upstream when those features change.
 
-- **🔧 Configurable API Base URL**: Connect to any Anthropic-compatible API endpoint
-- **🌐 Multiple Provider Support**: Works with official Anthropic API, z.ai, local servers, and more
-- **💬 Full Conversation Support**: Complete conversation agent functionality
-- **🤖 AI Task Automation**: Build intelligent automations with LLM assistance
-- **🎯 Feature Parity**: Maintains all functionality from the official integration
+## When this might help you
 
-## 🚀 Use Cases
+- You're using a non-Anthropic provider that exposes an Anthropic-compatible API
+- You're running a local LLM server (llama.cpp, vLLM, LM Studio, etc.) that speaks the Anthropic protocol
+- You want to keep the official Anthropic integration installed and have a separate provider configured side-by-side
 
-### Alternative LLM Providers
-- **z.ai**: Cost-effective alternative with compatible API
-- **Local LLM Servers**: Self-hosted models for privacy and offline capability
-- **API Gateways**: Custom routing and monitoring
-- **Development**: Test with mock servers before production
+If you're using the official Anthropic API directly, you should use Home Assistant's built-in Anthropic integration instead — this integration doesn't add anything for that case.
 
-### Flexible Deployment
-- **Privacy-Sensitive**: Keep data on-premise with local servers
-- **Cost Optimization**: Choose providers based on pricing
-- **Redundancy**: Switch between providers seamlessly
-- **Regional**: Use providers closer to your location
+## Installation
 
-## 📦 Installation
+### Requirements
 
-### Option 1: Via HACS (Recommended)
+- Home Assistant **2025.8** or newer
+- An API key for an Anthropic-compatible service
 
-[![Open your Home Assistant instance and open the repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=imonlinux&repository=configurable-llm&category=integration)
+### Via HACS (recommended)
 
-1. **Install HACS** if you haven't already:
-   ```bash
-   wget -O - https://get.hacs.xyz | bash -
-   ```
+[![Open your Home Assistant instance and add this repository inside HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=imonlinux&repository=configurable-llm&category=integration)
 
-2. **Add this repository to HACS:**
-   - Open HACS in Home Assistant
-   - Go to Integrations → Click the three dots (⋮) → "Custom repositories"
-   - Add: `https://github.com/imonlinux/configurable-llm`
-   - Category: "Integration"
-
-3. **Install the integration:**
-   - In HACS, search for "Configurable LLM"
-   - Click "Download" → "Install"
-   - Restart Home Assistant when prompted
-
-4. **Configure the integration:**
-   - Go to Settings → Devices & Services → Add Integration
-   - Search for "Configurable LLM"
-   - Configure with your API provider details (see Configuration section)
-
-### Option 2: Manual Installation
-
-1. **Download the component:**
-   ```bash
-   git clone https://github.com/imonlinux/configurable-llm.git
-   cd configurable-llm
-   ```
-
-2. **Copy to your Home Assistant configuration:**
-   ```bash
-   cp -r custom_components/configurable_llm /path/to/homeassistant/custom_components/
-   ```
-
-3. **Restart Home Assistant**
-
-4. **Add the integration:**
-   - Go to Settings → Devices & Services → Add Integration
-   - Search for "Configurable LLM"
-   - Configure with your API provider details
-
-## ⚙️ Configuration
-
-### Required Settings
-- **API Key**: Your API key for the LLM service
-
-### Optional Settings
-- **Base URL**: The API endpoint URL
-  - Default: `https://api.anthropic.com` (official Anthropic API)
-  - For z.ai: `https://api.z.ai/api/anthropic`
-  - For local servers: `http://localhost:8080/v1/`
-  - **Important**: Different providers use different URL structures
-  - For custom providers: Check their documentation for exact format
-
-## 🔧 Usage Examples
-
-### Example 1: Using z.ai
-```
-API Key: sk-your-zai-key
-Base URL: https://api.z.ai/api/anthropic
-```
-
-### Example 2: Official Anthropic API
-```
-API Key: sk-ant-your-key
-Base URL: (leave blank for default)
-```
-
-### Example 3: Local LLM Server
-```
-API Key: any-key
-Base URL: http://localhost:8080/v1/
-```
-**Note**: Include trailing slash for local servers as well.
-
-## 🔄 Updating
-
-### Via HACS
-- Open HACS → Integrations
-- Click "Configurable LLM"
-- Click "Update" if a new version is available
-- Restart Home Assistant when prompted
-
-### Manual Update
-1. Navigate to your configurable-llm directory and pull latest changes:
-   ```bash
-   cd /path/to/configurable-llm
-   git pull
-   ```
-2. Copy the updated files to your Home Assistant:
-   ```bash
-   cp -r custom_components/configurable_llm /path/to/homeassistant/custom_components/
-   ```
-3. Restart Home Assistant
-
-## 📚 Features
-
-### Conversation Agents
-- Multiple conversation configurations
-- Custom prompts and instructions
-- Model selection (Claude Haiku, Sonnet, Opus)
-- Token limit control
-- Temperature and other parameters
-
-### AI Tasks
-- Automated home intelligence
-- Trigger-based AI responses
-- HASS API integration
-- Custom action execution
-
-### Advanced Options
-- Prompt caching for performance
-- Thinking budget for complex reasoning
-- Tool use and web search
-- Code execution capabilities
-
-## 🛠️ Technical Details
-
-### Component Structure
-```
-configurable_llm/
-├── __init__.py           # Main integration setup
-├── const.py              # Constants and defaults
-├── config_flow.py        # Configuration UI flow
-├── coordinator.py        # API client with base URL support
-├── manifest.json         # Component metadata
-├── strings.json          # UI strings
-└── services.yaml         # Service definitions
-```
-
-### Key Implementation
-- Uses the official Anthropic Python SDK
-- Configurable base URL via `base_url` parameter
-- Maintains compatibility with Anthropic's API specification
-- Supports all standard conversation and AI task features
-
-## 🗑️ Uninstalling
-
-### Via HACS
-1. Go to Settings → Devices & Services
-2. Find "Configurable LLM Integration" → Click the three dots (⋮) → "Delete"
-3. Open HACS → Integrations → "Configurable LLM Integration"
-4. Click the three dots (⋮) → "Uninstall"
+1. Open HACS in Home Assistant
+2. Click the three-dot menu → **Custom repositories**
+3. Add `https://github.com/imonlinux/configurable-llm` with category **Integration**
+4. Find **Configurable LLM** in the HACS list and install it
 5. Restart Home Assistant
 
-### Manual Removal
-1. Go to Settings → Devices & Services
-2. Find "Configurable LLM Integration" → Click the three dots (⋮) → "Delete"
-3. Delete the component folder:
-   ```bash
-   rm -rf /path/to/homeassistant/custom_components/configurable_llm
-   ```
-4. Restart Home Assistant
+### Manual installation
 
-## 🔍 Troubleshooting
-
-### URL Format Issues
-**Common base URL problems:**
-- **Missing trailing slash**: `https://api.z.ai/v1` ❌ → `https://api.z.ai/v1/` ✅
-- **Wrong path**: Check provider documentation for correct API path
-- **HTML 404 errors**: Usually means wrong URL format or missing path
-- **Case sensitivity**: URLs are case-sensitive
-
-**Testing your base URL:**
 ```bash
-# Test if endpoint is accessible
-curl -H "Authorization: Bearer YOUR_API_KEY" \
-     -H "Content-Type: application/json" \
-     https://your-base-url/v1/messages
-
-# Should return JSON response, not HTML
+# From the root of your Home Assistant config directory
+git clone https://github.com/imonlinux/configurable-llm.git /tmp/configurable-llm
+mkdir -p custom_components
+cp -r /tmp/configurable-llm/custom_components/configurable_llm custom_components/
 ```
 
-### Connection Issues
-- Verify base URL is accessible from your network
-- Check API key validity
-- Review Home Assistant logs for specific errors
-- Test endpoint with curl/Postman
+Restart Home Assistant.
 
-### Model List Not Loading
-- Some providers don't support the models list endpoint
-- You can still manually specify models in conversations
-- Check provider documentation for available models
+## Setup
 
-### Authentication Errors
-- Double-check API key
-- Verify provider authentication method
-- Check if API key has required permissions
+After installation, add the integration:
 
-## 📖 Documentation
+1. Go to **Settings → Devices & Services → Add Integration**
+2. Search for **Configurable LLM**
+3. Fill in the form:
 
-- **[Installation Guide](INSTALL.md)**: Detailed setup instructions
-- **[Configuration Examples](EXAMPLES.md)**: Various provider configurations
-- **[Component Summary](COMPONENT_SUMMARY.md)**: Technical overview
+   ![Setup form showing API key and API base URL fields](docs/images/setup-form.png)
 
-## ⚠️ Compatibility Notes
+   - **API key** — your provider's API key
+   - **API base URL** — defaults to `https://api.anthropic.com`; replace with your provider's URL
 
-- **API Compatibility**: Works with Anthropic-compatible APIs
-- **Feature Parity**: Not all providers support every feature
-- **Model Availability**: Varies by provider
-- **Rate Limits**: Different limits per provider
+For provider-specific URLs and API key formats, see [docs/PROVIDERS.md](docs/PROVIDERS.md).
 
-## 🤝 Contributing
+Once the form is submitted the integration creates two default subentries:
 
-This component is based on the official Home Assistant Anthropic integration.
-Contributions should maintain compatibility with the original architecture.
+- A **conversation agent** named "LLM Conversation"
+- An **AI task** named "LLM AI Task"
 
-**Repository**: https://github.com/imonlinux/configurable-llm
-**Issues**: https://github.com/imonlinux/configurable-llm/issues
+Each subentry can be configured independently from the integration's card under **Settings → Devices & Services**.
 
-## 📄 License
+## Configuration
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+The integration is configured entirely through the Home Assistant UI — there is no YAML configuration.
 
-## 🙏 Credits
+Each conversation agent or AI task subentry has two configuration modes:
 
-Based on the [official Home Assistant Anthropic integration](https://github.com/home-assistant/core/tree/dev/homeassistant/components/anthropic).
+- **Recommended model settings** (default) — uses the first model returned by the provider and sensible defaults. No further configuration needed.
+- **Custom settings** — turn off "Recommended model settings" to access the full set of options below.
 
----
+### Basic settings
 
-**Component Name**: Configurable LLM
-**Domain**: `configurable_llm`
-**Version**: 1.0.0
-**Status**: ✅ Ready for installation and testing
+| Field | Description |
+|---|---|
+| Name | Display name for this conversation agent or AI task |
+| Instructions | System prompt sent to the model (Jinja templating supported) |
+| Control Home Assistant | Which Home Assistant LLM APIs the agent can use to control devices |
+
+### Advanced settings
+
+| Field | Description |
+|---|---|
+| Model | The model ID to use. A list is populated from the provider's `/v1/models` endpoint if available; otherwise you can type a model ID directly. |
+| Caching strategy | Off, system prompt only, or full caching |
+
+### Model-specific options
+
+The fields available here depend on what the selected model reports it supports. A typical set looks like this:
+
+![Model-specific options showing toggles for code execution, web search, web fetch, and tool search](docs/images/model-options.png)
+
+| Field | Description |
+|---|---|
+| Maximum tokens | Cap on the length of each response |
+| Thinking budget / Thinking effort | Reserved tokens for the model's internal reasoning (shown only when the model supports extended thinking) |
+| Code execution | Lets the model run code in a sandbox |
+| Web search | Lets the model issue search queries |
+| Maximum web searches | Cap on search queries per response |
+| Include home location | Localizes search results using your HA home zone |
+| Web fetch | Lets the model retrieve full content from a specific URL or PDF |
+| Maximum web fetches | Cap on URL fetches per response |
+| Tool search | Discover Home Assistant tools on demand instead of loading them all upfront |
+
+Tool features (code execution, web search, web fetch, tool search) are not implemented by every provider. If you enable a feature your provider doesn't support, the model will return an error at runtime — the integration won't pre-filter what's offered.
+
+## Updating
+
+### Via HACS
+
+HACS will notify you when a new release is available. Click **Update**, then restart Home Assistant.
+
+### Manual
+
+```bash
+cd /tmp/configurable-llm
+git pull
+cp -r custom_components/configurable_llm /path/to/homeassistant/custom_components/
+```
+
+Restart Home Assistant.
+
+## Uninstalling
+
+1. **Settings → Devices & Services**, find Configurable LLM, click the three-dot menu → **Delete**
+2. Restart Home Assistant
+3. For HACS installs: open HACS, find Configurable LLM, three-dot menu → **Remove**. For manual installs: delete the `custom_components/configurable_llm` directory.
+
+## Troubleshooting
+
+### The integration won't load
+
+Check the Home Assistant log (`Settings → System → Logs`). The most common causes:
+
+- **HA version too old** — this integration requires HA 2025.8 or newer because it uses AI task entities and config subentries
+- **SDK install failed** — the integration pulls `anthropic==0.96.0`; pip needs network access on first load
+
+### Authentication fails
+
+- The form treats `sk-ant-...`-style keys as the canonical Anthropic format, but the field accepts any string. The provider's authentication is what validates the key, so check the key against your provider's docs.
+- For local servers that don't authenticate, supply any non-empty string in the API key field.
+
+### "Invalid API endpoint" on the setup form
+
+The integration validates the base URL by listing models against it during setup. This error usually means one of:
+
+- The URL is wrong for your provider (see [docs/PROVIDERS.md](docs/PROVIDERS.md))
+- The path is missing or extra (e.g., missing `/v1/` or `/api/anthropic`)
+- The provider doesn't expose a `/v1/models` endpoint — in this case, the URL is probably right but the integration can't auto-validate it. Try setting the provider up via API console first to confirm it answers, then ignore this error (the integration may still work).
+
+### Empty model dropdown
+
+The provider's `/v1/models` endpoint returned an empty list or doesn't exist. The model field accepts custom values — type the model ID directly and it will be used.
+
+### A tool feature returns an error from the provider
+
+Not every Anthropic-compatible provider supports every tool. Turn off the feature in the conversation or AI task subentry. The error message in the HA log usually identifies which tool the provider rejected.
+
+### Debug logging
+
+```yaml
+# configuration.yaml
+logger:
+  default: info
+  logs:
+    custom_components.configurable_llm: debug
+```
+
+## Compatibility notes
+
+| Capability | Official Anthropic | Most Anthropic-compatible providers | Self-hosted / local |
+|---|---|---|---|
+| Conversation | ✅ | ✅ | ✅ (depends on server) |
+| AI Task | ✅ | ✅ | ✅ (depends on server) |
+| Tool calls (HA entities) | ✅ | usually ✅ | often ✅ |
+| Prompt caching | ✅ | maybe | usually no |
+| Thinking budget / effort | ✅ | varies | usually no |
+| Web search | ✅ | varies | usually no |
+| Web fetch | ✅ | varies | usually no |
+| Code execution | ✅ | varies | usually no |
+| Structured outputs (AI Task) | ✅ | varies | usually no |
+
+The integration doesn't probe for these — it surfaces whatever the model's `/v1/models` metadata reports it supports, then lets you opt in to the rest. If a feature isn't supported and you enable it, you'll see an error from the provider at runtime.
+
+## Contributing
+
+This component tracks the upstream [Home Assistant Anthropic integration](https://github.com/home-assistant/core/tree/dev/homeassistant/components/anthropic) closely. Patches that bring it further in line with upstream — especially as new Anthropic API features land — are welcome. Patches that fork its behavior should explain why.
+
+**Issues:** https://github.com/imonlinux/configurable-llm/issues
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+## Credits
+
+Based on the [Home Assistant Anthropic integration](https://github.com/home-assistant/core/tree/dev/homeassistant/components/anthropic). All credit for the core conversation, AI task, tool, and config-flow architecture goes to that project and its contributors.
