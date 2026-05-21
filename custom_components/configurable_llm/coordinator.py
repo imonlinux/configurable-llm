@@ -122,3 +122,17 @@ class ConfigurableLLMCoordinator(DataUpdateCoordinator[list[anthropic.types.Mode
             created_at=datetime.datetime(1970, 1, 1, tzinfo=datetime.UTC),
             display_name=alias,
         ), False
+
+    @callback
+    def get_default_model(self, fallback: str) -> str:
+        """Return a sensible default model ID for this provider.
+
+        Uses the first model returned by the provider's `/v1/models` endpoint
+        when available. This makes the integration work out of the box with
+        non-Anthropic providers (z.ai, local servers, etc.) whose model IDs
+        differ from Anthropic's. Falls back to the supplied `fallback` value
+        when the provider does not expose a usable model list.
+        """
+        if self.data:
+            return self.data[0].id
+        return fallback

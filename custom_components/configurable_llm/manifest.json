@@ -11,5 +11,5 @@
   "issue_tracker": "https://github.com/imonlinux/configurable-llm/issues",
   "quality_scale": "silver",
   "requirements": ["anthropic>=0.40.0"],
-  "version": "1.0.2"
+  "version": "1.0.3"
 }

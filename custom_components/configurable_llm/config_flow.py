@@ -340,10 +340,13 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
         errors: dict[str, str] = {}
         description_placeholders: dict[str, str] = {}
 
+        coordinator = self._get_entry().runtime_data
+        default_model = coordinator.get_default_model(DEFAULT[CONF_CHAT_MODEL])
+
         step_schema: VolDictType = {
             vol.Optional(
                 CONF_CHAT_MODEL,
-                default=DEFAULT[CONF_CHAT_MODEL],
+                default=default_model,
             ): SelectSelector(
                 SelectSelectorConfig(options=self._get_model_list(), custom_value=True)
             ),
@@ -362,7 +365,6 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
         if user_input is not None:
             self.options.update(user_input)
 
-            coordinator = self._get_entry().runtime_data
             self.model_info, status = coordinator.get_model_info(
                 self.options[CONF_CHAT_MODEL]
             )
@@ -566,9 +568,11 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
         location_data: dict[str, str] = {}
         zone_home = self.hass.states.get(ENTITY_ID_HOME)
         if zone_home is not None:
+            entry = self._get_entry()
+            coordinator = entry.runtime_data
             client = anthropic.AsyncAnthropic(
-                api_key=self._get_entry().data[CONF_API_KEY],
-                base_url=self._get_entry().data.get(CONF_BASE_URL, DEFAULT_BASE_URL),
+                api_key=entry.data[CONF_API_KEY],
+                base_url=entry.data.get(CONF_BASE_URL, DEFAULT_BASE_URL),
                 http_client=get_async_client(self.hass),
             )
             location_schema = vol.Schema(
@@ -587,7 +591,9 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
             )
             try:
                 response = await client.messages.create(
-                    model=cast(str, DEFAULT[CONF_CHAT_MODEL]),
+                    model=coordinator.get_default_model(
+                        cast(str, DEFAULT[CONF_CHAT_MODEL])
+                    ),
                     messages=[
                         {
                             "role": "user",
