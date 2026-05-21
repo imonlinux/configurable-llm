@@ -1,0 +1,15 @@
+# Test dependencies for Configurable LLM
+pytest>=8.0.0
+pytest-homeassistant-custom-component>=0.13.0
+pytest-asyncio>=0.23.0
+pytest-cov>=4.1.0
+pytest-timeout>=2.3.0
+
+# The integration dependencies
+anthropic==0.96.0
+voluptuous>=0.13.1
+voluptuous-openapi>=0.1.0
+
+# Additional HA dependencies
+hassil>=1.0.0
+home-assistant-intents>=2025.1.0
