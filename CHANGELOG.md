@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.0.9
+
+### Removed
+
+Removed the quality_scale declaration from manifest.json and deleted quality_scale.yaml. The quality scale is a Home Assistant Core concept tied to the official integration review process; self-declaring it on a HACS-custom integration is not meaningful and the inherited values did not accurately reflect this fork.
+
 ## 1.0.8
 
 ### Changed
