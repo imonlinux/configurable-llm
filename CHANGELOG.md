@@ -6,7 +6,7 @@ All notable changes to this project are documented here. This project follows [K
 
 ### Removed
 
-Removed the quality_scale declaration from manifest.json and deleted quality_scale.yaml. The quality scale is a Home Assistant Core concept tied to the official integration review process; self-declaring it on a HACS-custom integration is not meaningful and the inherited values did not accurately reflect this fork.
+- Removed the quality_scale declaration from manifest.json and deleted quality_scale.yaml. The quality scale is a Home Assistant Core concept tied to the official integration review process; self-declaring it on a HACS-custom integration is not meaningful and the inherited values did not accurately reflect this fork.
 
 ## 1.0.8
 
