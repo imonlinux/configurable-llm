@@ -1,7 +1,5 @@
 {
   "name": "Configurable LLM",
-  "description": "Home Assistant conversation agent and AI task entity for any Anthropic-compatible API endpoint, including self-hosted servers.",
   "homeassistant": "2025.8.0",
-  "render_readme": true,
   "zip_release": false
 }
