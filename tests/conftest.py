@@ -8,10 +8,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import anthropic
 import pytest
 from anthropic.types import ModelInfo
-
-# Set up compatibility layer for newer HA features
-import tests.test_compat  # noqa: F401 - must be imported first
-
 from homeassistant import setup
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.core import HomeAssistant
