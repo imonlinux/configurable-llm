@@ -19,8 +19,10 @@ async def test_async_setup_entry(
     mock_config_entry: ConfigEntry,
     mock_subentry_conversation: MagicMock,
     mock_add_entities: AddEntitiesCallback,
+    mock_coordinator: MagicMock,
 ) -> None:
     """Test async_setup_entry."""
+    mock_config_entry.runtime_data = mock_coordinator
     mock_config_entry.subentries = {
         "test_conversation_id": mock_subentry_conversation,
     }
@@ -39,8 +41,10 @@ async def test_async_setup_entry_skips_non_conversation(
     mock_config_entry: ConfigEntry,
     mock_subentry_ai_task: MagicMock,
     mock_add_entities: AddEntitiesCallback,
+    mock_coordinator: MagicMock,
 ) -> None:
     """Test async_setup_entry skips non-conversation subentries."""
+    mock_config_entry.runtime_data = mock_coordinator
     mock_subentry_ai_task.subentry_type = "ai_task_data"
     mock_config_entry.subentries = {
         "test_ai_task_id": mock_subentry_ai_task,
@@ -50,15 +54,17 @@ async def test_async_setup_entry_skips_non_conversation(
 
     # Should not add any entities since subentry type is ai_task_data
     call_args = mock_add_entities.call_args
-    assert len(call_args[0][0]) == 0 if call_args else 0
+    assert call_args is None or len(call_args[0][0]) == 0
 
 
 async def test_conversation_entity_properties(
     hass: HomeAssistant,
     mock_config_entry: ConfigEntry,
     mock_subentry_conversation: MagicMock,
+    mock_coordinator: MagicMock,
 ) -> None:
     """Test ConfigurableLLMConversationEntity properties."""
+    mock_config_entry.runtime_data = mock_coordinator
     entity = ConfigurableLLMConversationEntity(
         mock_config_entry, mock_subentry_conversation
     )
@@ -74,8 +80,10 @@ async def test_conversation_entity_with_hass_api_control(
     hass: HomeAssistant,
     mock_config_entry: ConfigEntry,
     mock_subentry_conversation: MagicMock,
+    mock_coordinator: MagicMock,
 ) -> None:
     """Test ConfigurableLLMConversationEntity with HA API control enabled."""
+    mock_config_entry.runtime_data = mock_coordinator
     mock_subentry_conversation.data["llm_hass_api"] = "assist"
 
     entity = ConfigurableLLMConversationEntity(
@@ -89,8 +97,10 @@ async def test_conversation_entity_without_hass_api_control(
     hass: HomeAssistant,
     mock_config_entry: ConfigEntry,
     mock_subentry_conversation: MagicMock,
+    mock_coordinator: MagicMock,
 ) -> None:
     """Test ConfigurableLLMConversationEntity without HA API control."""
+    mock_config_entry.runtime_data = mock_coordinator
     mock_subentry_conversation.data["llm_hass_api"] = None
 
     entity = ConfigurableLLMConversationEntity(
@@ -106,8 +116,10 @@ async def test_async_handle_message_success(
     hass: HomeAssistant,
     mock_config_entry: ConfigEntry,
     mock_subentry_conversation: MagicMock,
+    mock_coordinator: MagicMock,
 ) -> None:
     """Test _async_handle_message success path."""
+    mock_config_entry.runtime_data = mock_coordinator
     entity = ConfigurableLLMConversationEntity(
         mock_config_entry, mock_subentry_conversation
     )
@@ -132,8 +144,10 @@ async def test_async_handle_message_converse_error(
     hass: HomeAssistant,
     mock_config_entry: ConfigEntry,
     mock_subentry_conversation: MagicMock,
+    mock_coordinator: MagicMock,
 ) -> None:
     """Test _async_handle_message with ConverseError."""
+    mock_config_entry.runtime_data = mock_coordinator
     entity = ConfigurableLLMConversationEntity(
         mock_config_entry, mock_subentry_conversation
     )
@@ -160,8 +174,10 @@ async def test_async_handle_message_hass_api_uses_options(
     hass: HomeAssistant,
     mock_config_entry: ConfigEntry,
     mock_subentry_conversation: MagicMock,
+    mock_coordinator: MagicMock,
 ) -> None:
     """Test _async_handle_message uses llm_hass_api from options."""
+    mock_config_entry.runtime_data = mock_coordinator
     mock_subentry_conversation.data["llm_hass_api"] = "assist"
 
     entity = ConfigurableLLMConversationEntity(
@@ -191,8 +207,10 @@ async def test_async_handle_message_uses_prompt_from_options(
     hass: HomeAssistant,
     mock_config_entry: ConfigEntry,
     mock_subentry_conversation: MagicMock,
+    mock_coordinator: MagicMock,
 ) -> None:
     """Test _async_handle_message uses prompt from subentry data."""
+    mock_config_entry.runtime_data = mock_coordinator
     mock_subentry_conversation.data["prompt"] = "You are a helpful assistant."
 
     entity = ConfigurableLLMConversationEntity(
@@ -211,16 +229,18 @@ async def test_async_handle_message_uses_prompt_from_options(
         await entity._async_handle_message(user_input, chat_log)
 
     chat_log.async_provide_llm_data.assert_called_once()
-    call_kwargs = chat_log.async_provide_llm_data.call_args.kwargs
-    assert call_kwargs["prompt"] == "You are a helpful assistant."
+    call_args = chat_log.async_provide_llm_data.call_args.args
+    assert call_args[2] == "You are a helpful assistant."  # 3rd positional = prompt
 
 
 async def test_async_handle_message_with_extra_system_prompt(
     hass: HomeAssistant,
     mock_config_entry: ConfigEntry,
     mock_subentry_conversation: MagicMock,
+    mock_coordinator: MagicMock,
 ) -> None:
     """Test _async_handle_message includes extra system prompt."""
+    mock_config_entry.runtime_data = mock_coordinator
     entity = ConfigurableLLMConversationEntity(
         mock_config_entry, mock_subentry_conversation
     )
@@ -237,5 +257,5 @@ async def test_async_handle_message_with_extra_system_prompt(
         await entity._async_handle_message(user_input, chat_log)
 
     chat_log.async_provide_llm_data.assert_called_once()
-    call_kwargs = chat_log.async_provide_llm_data.call_args.kwargs
-    assert call_kwargs["extra_system_prompt"] == "Additional instruction"
+    call_args = chat_log.async_provide_llm_data.call_args.args
+    assert call_args[3] == "Additional instruction"  # 4th positional = extra_system_prompt
