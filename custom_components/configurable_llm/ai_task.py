@@ -1,5 +1,7 @@
 """AI Task integration for Configurable LLM."""
 
+from __future__ import annotations
+
 from json import JSONDecodeError
 import logging
 from typing import TYPE_CHECKING
