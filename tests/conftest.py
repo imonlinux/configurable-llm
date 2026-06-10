@@ -103,6 +103,20 @@ def mock_models_list() -> list[ModelInfo]:
 
 
 @pytest.fixture
+def mock_coordinator(mock_models_list: list[ModelInfo]) -> MagicMock:
+    """Return a mock coordinator with model-resolution methods stubbed.
+
+    Entity construction calls coordinator.get_model_info(...) and
+    coordinator.get_default_model(...), so both must return realistic values.
+    """
+    coordinator = MagicMock()
+    coordinator.data = mock_models_list
+    coordinator.get_model_info = MagicMock(return_value=(mock_models_list[0], True))
+    coordinator.get_default_model = MagicMock(return_value=mock_models_list[0].id)
+    return coordinator
+
+
+@pytest.fixture
 def mock_anthropic_client(mock_models_list: list[ModelInfo]) -> MagicMock:
     """Return a mock Anthropic client."""
     client = MagicMock(spec=anthropic.AsyncAnthropic)

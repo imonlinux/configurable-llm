@@ -20,8 +20,10 @@ async def test_async_setup_entry(
     mock_config_entry: ConfigEntry,
     mock_subentry_ai_task: MagicMock,
     mock_add_entities: AddEntitiesCallback,
+    mock_coordinator: MagicMock,
 ) -> None:
     """Test async_setup_entry."""
+    mock_config_entry.runtime_data = mock_coordinator
     mock_config_entry.subentries = {
         "test_ai_task_id": mock_subentry_ai_task,
     }
@@ -40,8 +42,10 @@ async def test_async_setup_entry_skips_non_ai_task(
     mock_config_entry: ConfigEntry,
     mock_subentry_conversation: MagicMock,
     mock_add_entities: AddEntitiesCallback,
+    mock_coordinator: MagicMock,
 ) -> None:
     """Test async_setup_entry skips non-AI task subentries."""
+    mock_config_entry.runtime_data = mock_coordinator
     mock_subentry_conversation.subentry_type = "conversation"
     mock_config_entry.subentries = {
         "test_conversation_id": mock_subentry_conversation,
@@ -51,15 +55,17 @@ async def test_async_setup_entry_skips_non_ai_task(
 
     # Should not add any entities since subentry type is conversation
     call_args = mock_add_entities.call_args
-    assert len(call_args[0][0]) == 0 if call_args else 0
+    assert call_args is None or len(call_args[0][0]) == 0
 
 
 async def test_ai_task_entity_properties(
     hass: HomeAssistant,
     mock_config_entry: ConfigEntry,
     mock_subentry_ai_task: MagicMock,
+    mock_coordinator: MagicMock,
 ) -> None:
     """Test ConfigurableLLMTaskEntity properties."""
+    mock_config_entry.runtime_data = mock_coordinator
     entity = ConfigurableLLMTaskEntity(
         mock_config_entry, mock_subentry_ai_task
     )
@@ -76,8 +82,10 @@ async def test_async_generate_data_success_without_structure(
     hass: HomeAssistant,
     mock_config_entry: ConfigEntry,
     mock_subentry_ai_task: MagicMock,
+    mock_coordinator: MagicMock,
 ) -> None:
     """Test _async_generate_data without structure returns raw text."""
+    mock_config_entry.runtime_data = mock_coordinator
     entity = ConfigurableLLMTaskEntity(
         mock_config_entry, mock_subentry_ai_task
     )
@@ -107,8 +115,10 @@ async def test_async_generate_data_success_with_structure(
     hass: HomeAssistant,
     mock_config_entry: ConfigEntry,
     mock_subentry_ai_task: MagicMock,
+    mock_coordinator: MagicMock,
 ) -> None:
     """Test _async_generate_data with structure parses JSON."""
+    mock_config_entry.runtime_data = mock_coordinator
     entity = ConfigurableLLMTaskEntity(
         mock_config_entry, mock_subentry_ai_task
     )
@@ -138,8 +148,10 @@ async def test_async_generate_data_json_parse_error(
     hass: HomeAssistant,
     mock_config_entry: ConfigEntry,
     mock_subentry_ai_task: MagicMock,
+    mock_coordinator: MagicMock,
 ) -> None:
     """Test _async_generate_data with invalid JSON raises error."""
+    mock_config_entry.runtime_data = mock_coordinator
     entity = ConfigurableLLMTaskEntity(
         mock_config_entry, mock_subentry_ai_task
     )
@@ -169,8 +181,10 @@ async def test_async_generate_data_no_assistant_response(
     hass: HomeAssistant,
     mock_config_entry: ConfigEntry,
     mock_subentry_ai_task: MagicMock,
+    mock_coordinator: MagicMock,
 ) -> None:
     """Test _async_generate_data when no assistant response exists."""
+    mock_config_entry.runtime_data = mock_coordinator
     entity = ConfigurableLLMTaskEntity(
         mock_config_entry, mock_subentry_ai_task
     )
@@ -197,8 +211,10 @@ async def test_async_generate_data_passes_max_iterations(
     hass: HomeAssistant,
     mock_config_entry: ConfigEntry,
     mock_subentry_ai_task: MagicMock,
+    mock_coordinator: MagicMock,
 ) -> None:
     """Test _async_generate_data passes max_iterations to _async_handle_chat_log."""
+    mock_config_entry.runtime_data = mock_coordinator
     entity = ConfigurableLLMTaskEntity(
         mock_config_entry, mock_subentry_ai_task
     )
