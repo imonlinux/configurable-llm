@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.1.1
+
+### Added
+
+- custom_components/configurable_llm/brand/icon.png
+
 ## 1.1.0
 
 ### Fixed
