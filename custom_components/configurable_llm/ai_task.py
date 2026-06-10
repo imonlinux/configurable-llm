@@ -16,6 +16,8 @@ from .entity import ConfigurableLLMBaseEntity
 if TYPE_CHECKING:
     from . import ConfigurableLLMConfigEntry
 
+PARALLEL_UPDATES = 0
+
 _LOGGER = logging.getLogger(__name__)
 
 

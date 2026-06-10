@@ -17,8 +17,6 @@ from anthropic.types import (
     Base64PDFSourceParam,
     BashCodeExecutionToolResultBlock,
     CitationsDelta,
-    CitationsWebSearchResultLocation,
-    CitationWebSearchResultLocationParam,
     CodeExecutionTool20250825Param,
     CodeExecutionToolResultBlock,
     CodeExecutionToolResultBlockContent,
@@ -219,17 +217,9 @@ class ContentDetails:
         """Add a citation to the current detail."""
         if not self.citation_details:
             self.citation_details.append(CitationDetails())
-        citation_param: TextCitationParam | None = None
-        if isinstance(citation, CitationsWebSearchResultLocation):
-            citation_param = CitationWebSearchResultLocationParam(
-                type="web_search_result_location",
-                title=citation.title,
-                url=citation.url,
-                cited_text=citation.cited_text,
-                encrypted_index=citation.encrypted_index,
-            )
-        if citation_param:
-            self.citation_details[-1].citations.append(citation_param)
+        self.citation_details[-1].citations.append(
+            cast(TextCitationParam, citation.to_dict())
+        )
 
     def delete_empty(self) -> None:
         """Delete empty citation details."""
@@ -903,7 +893,10 @@ class ConfigurableLLMBaseEntity(CoordinatorEntity[ConfigurableLLMCoordinator]):
         self.subentry = subentry
         coordinator = entry.runtime_data
         self.model_info, _ = coordinator.get_model_info(
-            subentry.data.get(CONF_CHAT_MODEL, DEFAULT[CONF_CHAT_MODEL])
+            subentry.data.get(
+                CONF_CHAT_MODEL,
+                coordinator.get_default_model(DEFAULT[CONF_CHAT_MODEL]),
+            )
         )
         self._attr_unique_id = subentry.subentry_id
         self._attr_device_info = dr.DeviceInfo(
@@ -940,7 +933,7 @@ class ConfigurableLLMBaseEntity(CoordinatorEntity[ConfigurableLLMCoordinator]):
 
         messages, container_id = _convert_content(chat_log.content[1:])
 
-        model = options[CONF_CHAT_MODEL]
+        model = self.model_info.id
 
         model_args = MessageCreateParamsStreaming(
             model=model,
