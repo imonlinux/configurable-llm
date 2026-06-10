@@ -1,8 +1,9 @@
 """Test the Configurable LLM config flow."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import anthropic
+import httpx
 import pytest
 from homeassistant.config_entries import ConfigEntry, SOURCE_REAUTH, ConfigEntryState
 from homeassistant.const import CONF_API_KEY, CONF_LLM_HASS_API, CONF_NAME, CONF_PROMPT
@@ -56,7 +57,7 @@ async def test_validate_input_timeout(
     ) as mock_anthropic:
         mock_client = MagicMock()
         mock_client.models.list = AsyncMock(side_effect=anthropic.APITimeoutError(
-            message="Request timeout"
+            request=httpx.Request("GET", "https://api.anthropic.com")
         ))
         mock_anthropic.return_value = mock_client
 
@@ -90,9 +91,10 @@ async def test_validate_input_auth_error(
         mock_client = MagicMock()
         mock_client.models.list = AsyncMock(
             side_effect=anthropic.APIStatusError(
-                message="Unauthorized",
-                type="authentication_error",
-                response=MagicMock(),
+                "Unauthorized",
+                response=httpx.Response(
+                    401, request=httpx.Request("GET", "https://api.anthropic.com")
+                ),
                 body={"error": {"type": "authentication_error"}},
             )
         )
@@ -153,7 +155,7 @@ async def test_flow_step_user_timeout_error(
     ) as mock_anthropic:
         mock_client = MagicMock()
         mock_client.models.list = AsyncMock(side_effect=anthropic.APITimeoutError(
-            message="Request timeout"
+            request=httpx.Request("GET", "https://api.anthropic.com")
         ))
         mock_anthropic.return_value = mock_client
 
@@ -179,9 +181,10 @@ async def test_flow_step_user_auth_error(
         mock_client = MagicMock()
         mock_client.models.list = AsyncMock(
             side_effect=anthropic.APIStatusError(
-                message="Unauthorized",
-                type="authentication_error",
-                response=MagicMock(),
+                "Unauthorized",
+                response=httpx.Response(
+                    401, request=httpx.Request("GET", "https://api.anthropic.com")
+                ),
                 body={"error": {"type": "authentication_error"}},
             )
         )
@@ -231,13 +234,17 @@ async def test_flow_subentry_conversation_init(
 
     flow = ConversationSubentryFlowHandler()
     flow.hass = hass
-    flow._subentry_type = "conversation"
     flow.source = "user"
     flow._get_entry = MagicMock(return_value=mock_config_entry)
 
     with patch(
         "homeassistant.helpers.llm.async_get_apis",
         return_value=[],
+    ), patch.object(
+        ConversationSubentryFlowHandler,
+        "_subentry_type",
+        new_callable=PropertyMock,
+        return_value="conversation",
     ):
         result = await flow.async_step_user(None)
 
@@ -257,13 +264,17 @@ async def test_flow_subentry_conversation_recommended(
 
     flow = ConversationSubentryFlowHandler()
     flow.hass = hass
-    flow._subentry_type = "conversation"
     flow.source = "user"
     flow._get_entry = MagicMock(return_value=mock_config_entry)
 
     with patch(
         "homeassistant.helpers.llm.async_get_apis",
         return_value=[],
+    ), patch.object(
+        ConversationSubentryFlowHandler,
+        "_subentry_type",
+        new_callable=PropertyMock,
+        return_value="conversation",
     ):
         result = await flow.async_step_init({
             CONF_NAME: "Test Conversation",
@@ -291,7 +302,6 @@ async def test_flow_subentry_advanced_step(
 
     flow = ConversationSubentryFlowHandler()
     flow.hass = hass
-    flow._subentry_type = "conversation"
     flow.source = "user"
     flow._get_entry = MagicMock(return_value=mock_config_entry)
     flow.options = {CONF_RECOMMENDED: False}
@@ -299,6 +309,11 @@ async def test_flow_subentry_advanced_step(
     with patch(
         "homeassistant.helpers.llm.async_get_apis",
         return_value=[],
+    ), patch.object(
+        ConversationSubentryFlowHandler,
+        "_subentry_type",
+        new_callable=PropertyMock,
+        return_value="conversation",
     ):
         result = await flow.async_step_advanced({
             CONF_CHAT_MODEL: mock_models_list[0].id,
@@ -321,7 +336,6 @@ async def test_flow_subentry_model_step(
 
     flow = ConversationSubentryFlowHandler()
     flow.hass = hass
-    flow._subentry_type = "conversation"
     flow.source = "user"
     flow._get_entry = MagicMock(return_value=mock_config_entry)
     flow.options = {
@@ -333,7 +347,13 @@ async def test_flow_subentry_model_step(
     }
     flow.model_info = mock_models_list[0]
 
-    result = await flow.async_step_model({})
+    with patch.object(
+        ConversationSubentryFlowHandler,
+        "_subentry_type",
+        new_callable=PropertyMock,
+        return_value="conversation",
+    ):
+        result = await flow.async_step_model({})
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
 
@@ -350,18 +370,23 @@ async def test_flow_subentry_thinking_budget_error(
 
     flow = ConversationSubentryFlowHandler()
     flow.hass = hass
-    flow._subentry_type = "conversation"
     flow.source = "user"
     flow._get_entry = MagicMock(return_value=mock_config_entry)
     flow.options = {CONF_NAME: "Test"}
     flow.model_info = mock_models_list[0]
 
-    result = await flow.async_step_model({
-        CONF_MAX_TOKENS: 3000,
-        CONF_THINKING_BUDGET: 4000,
-        CONF_CODE_EXECUTION: DEFAULT[CONF_CODE_EXECUTION],
-        CONF_WEB_SEARCH: DEFAULT[CONF_WEB_SEARCH],
-    })
+    with patch.object(
+        ConversationSubentryFlowHandler,
+        "_subentry_type",
+        new_callable=PropertyMock,
+        return_value="conversation",
+    ):
+        result = await flow.async_step_model({
+            CONF_MAX_TOKENS: 3000,
+            CONF_THINKING_BUDGET: 4000,
+            CONF_CODE_EXECUTION: DEFAULT[CONF_CODE_EXECUTION],
+            CONF_WEB_SEARCH: DEFAULT[CONF_WEB_SEARCH],
+        })
 
     assert result["type"] == FlowResultType.FORM
     assert result["errors"][CONF_THINKING_BUDGET] == "thinking_budget_too_large"
@@ -376,10 +401,15 @@ async def test_flow_subentry_entry_not_loaded(
 
     flow = ConversationSubentryFlowHandler()
     flow.hass = hass
-    flow._subentry_type = "conversation"
     flow._get_entry = MagicMock(return_value=mock_config_entry)
 
-    result = await flow.async_step_init({})
+    with patch.object(
+        ConversationSubentryFlowHandler,
+        "_subentry_type",
+        new_callable=PropertyMock,
+        return_value="conversation",
+    ):
+        result = await flow.async_step_init({})
 
     assert result["type"] == FlowResultType.ABORT
     assert result["reason"] == "entry_not_loaded"
@@ -418,7 +448,6 @@ async def test_flow_subentry_reconfigure(
 
     flow = ConversationSubentryFlowHandler()
     flow.hass = hass
-    flow._subentry_type = "conversation"
     flow.source = "reconfigure"
     flow._get_entry = MagicMock(return_value=mock_config_entry)
     flow._get_reconfigure_subentry = MagicMock(return_value=mock_subentry_conversation)
@@ -426,6 +455,11 @@ async def test_flow_subentry_reconfigure(
     with patch(
         "homeassistant.helpers.llm.async_get_apis",
         return_value=[],
+    ), patch.object(
+        ConversationSubentryFlowHandler,
+        "_subentry_type",
+        new_callable=PropertyMock,
+        return_value="conversation",
     ):
         result = await flow.async_step_reconfigure(None)
 
@@ -445,13 +479,17 @@ async def test_flow_subentry_recommended_skips_advanced(
 
     flow = ConversationSubentryFlowHandler()
     flow.hass = hass
-    flow._subentry_type = "conversation"
     flow.source = "user"
     flow._get_entry = MagicMock(return_value=mock_config_entry)
 
     with patch(
         "homeassistant.helpers.llm.async_get_apis",
         return_value=[],
+    ), patch.object(
+        ConversationSubentryFlowHandler,
+        "_subentry_type",
+        new_callable=PropertyMock,
+        return_value="conversation",
     ):
         result = await flow.async_step_init({
             CONF_NAME: "Test",
