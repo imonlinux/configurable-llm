@@ -13,3 +13,7 @@ voluptuous-openapi>=0.1.0
 # Additional HA dependencies
 hassil>=1.0.0
 home-assistant-intents>=2025.1.0
+
+# Pin josepy < 2.0 — acme/hass_nabucasa in the HA dependency tree still
+# reference josepy.ComparableX509, which was removed in josepy 2.0.0.
+josepy<2.0
