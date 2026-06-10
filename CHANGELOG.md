@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.1.0
+
+### Fixed
+
+- **Repairs flow crash** — Restored None-guard in `async_step_init` to handle HA's initial form render call without AttributeError
+- **Silent citation loss** — Restored full citation handling via `citation.to_dict()` instead of only `CitationsWebSearchResultLocation`
+- **LiteLLM model bug** — Runtime requests now use `self.model_info.id` instead of falling back to hardcoded Anthropic ID in recommended mode
+- **Init fallback routing** — Model initialization now uses `coordinator.get_default_model()` instead of hardcoded Anthropic ID
+- Added `PARALLEL_UPDATES = 0` to conversation and AI task platforms for unrestricted concurrent entity operations
+
 ## 1.0.9
 
 ### Removed
