@@ -9,7 +9,6 @@
   "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/imonlinux/configurable-llm/issues",
-  "quality_scale": "silver",
   "requirements": ["anthropic==0.96.0"],
-  "version": "1.0.8"
+  "version": "1.0.9"
 }
