@@ -1,19 +1,20 @@
 # Test dependencies for Configurable LLM
+#
+# pytest-homeassistant-custom-component tracks home-assistant/core; the patch
+# number (0.13.X) increments with each HA release. Plugin versions are also
+# Python-version gated: 0.13.206+ require Python >= 3.13 (HA dropped 3.12).
+# CI must therefore run on Python 3.13+ — see .github/workflows/tests.yaml.
+#
+# Floor mapping (verified): 0.13.270 bundles homeassistant 2025.8.1, which is
+# the minimum HA this integration targets and the first tree containing the
+# ConfigSubentry / AI Task APIs the integration uses. A modern HA tree also
+# resolves josepy correctly on its own, so no separate josepy pin is needed.
+pytest-homeassistant-custom-component>=0.13.270
+ 
 pytest>=8.0.0
-pytest-homeassistant-custom-component>=0.13.0
 pytest-asyncio>=0.23.0
 pytest-cov>=4.1.0
 pytest-timeout>=2.3.0
-
-# The integration dependencies
+ 
+# The integration dependency that is NOT provided transitively by Home Assistant
 anthropic==0.96.0
-voluptuous>=0.13.1
-voluptuous-openapi>=0.1.0
-
-# Additional HA dependencies
-hassil>=1.0.0
-home-assistant-intents>=2025.1.0
-
-# Pin josepy < 2.0 — acme/hass_nabucasa in the HA dependency tree still
-# reference josepy.ComparableX509, which was removed in josepy 2.0.0.
-josepy<2.0
