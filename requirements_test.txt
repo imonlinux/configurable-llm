@@ -16,9 +16,15 @@ pytest-timeout>=2.3.0
 # Runtime dependency of this integration, not provided by Home Assistant itself.
 anthropic==0.96.0
 
-# Component-level requirements of the `conversation` platform (a dependency of
-# this integration). The base pytest-homeassistant-custom-component install does
-# NOT pull per-component requirements, so the conversation module's top-level
-# `from hassil.recognize import RecognizeResult` import fails without these.
+# Component-level requirements pulled in transitively when this integration's
+# platforms import Home Assistant components. The base
+# pytest-homeassistant-custom-component install does NOT install per-component
+# requirements, so these top-level imports fail without the packages present:
+#   - conversation  -> `from hassil.recognize import RecognizeResult`  (hassil, home-assistant-intents)
+#   - ai_task -> camera -> `from turbojpeg import TurboJPEG`           (PyTurboJPEG)
+# Note: PyTurboJPEG's *import* succeeds without the native libturbojpeg system
+# library; that library is only needed to actually decode JPEGs, which the test
+# suite never does. So no apt/system package is required.
 hassil
 home-assistant-intents
+PyTurboJPEG
