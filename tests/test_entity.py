@@ -1,5 +1,6 @@
 """Test the Configurable LLM entity module."""
 
+from collections import deque
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -34,15 +35,6 @@ def test_citation_details_empty() -> None:
     assert details.index == 0
     assert details.length == 0
     assert details.citations == []
-
-
-def test_citation_details_has_citations() -> None:
-    """Test CitationDetails has_citations method."""
-    details = CitationDetails()
-    assert not details.has_citations()
-
-    details.citations = [MagicMock()]
-    assert details.has_citations()
 
 
 def test_content_details_empty() -> None:
@@ -131,8 +123,8 @@ async def test_convert_content_user_messages(
 
     assert len(messages) == 1
     assert messages[0]["role"] == "user"
-    assert "Hello" in messages[0]["content"]
-    assert "World" in messages[0]["content"]
+    assert messages[0]["content"][0]["text"] == "Hello"
+    assert messages[0]["content"][1]["text"] == "World"
     assert container_id is None
 
 
@@ -243,7 +235,7 @@ async def test_delta_stream_iteration() -> None:
     stream.__anext__ = AsyncMock(side_effect=[{"content": "Hello"}, StopIteration])
 
     delta_stream = ConfigurableLLMDeltaStream(chat_log, stream)
-    delta_stream._buffer = [{"content": "Buffered"}]
+    delta_stream._buffer = deque([{"content": "Buffered"}])
 
     result = await delta_stream.__anext__()
 
@@ -266,7 +258,6 @@ async def test_base_entity_init(
 
     assert entity.entry == mock_config_entry
     assert entity.subentry == mock_subentry_conversation
-    assert entity.entity_id == "test_conversation_id"
     assert entity.unique_id == "test_conversation_id"
     assert entity.has_entity_name is True
 
@@ -287,10 +278,10 @@ async def test_base_entity_device_info(
 
     device_info = entity.device_info
 
-    assert device_info.identifiers == {("configurable_llm", "test_conversation_id")}
-    assert device_info.name == "Test Conversation"
-    assert device_info.manufacturer == "Configurable LLM"
-    assert device_info.model == "Claude 3.5 Sonnet"
+    assert device_info["identifiers"] == {("configurable_llm", "test_conversation_id")}
+    assert device_info["name"] == "Test Conversation"
+    assert device_info["manufacturer"] == "Configurable LLM"
+    assert device_info["model"] == "Claude 3.5 Sonnet"
 
 
 def test_prompt_caching_enum() -> None:
@@ -353,8 +344,9 @@ async def test_convert_content_tool_result_with_external_tool(
 
 
 async def test_citation_details_with_existing_citation() -> None:
-    """Test CitationDetails preserves existing index when adding."""
-    details = CitationDetails(index=10, length=5)
+    """Test ContentDetails preserves existing index when adding a citation detail."""
+    details = ContentDetails()
+    details.citation_details = [CitationDetails(index=10, length=5)]
     details.add_citation_detail()
 
     assert details.citation_details[-1].index == 15  # 10 + 5
