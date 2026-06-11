@@ -131,15 +131,15 @@ async def test_async_handle_message_success(
     chat_log = MagicMock(spec=conversation.ChatLog)
     chat_log.async_provide_llm_data = AsyncMock()
 
-    with patch.object(entity, "_async_handle_chat_log", new=AsyncMock()), patch(
+    with patch.object(
+        entity, "_async_handle_chat_log", new=AsyncMock()
+    ) as mock_handle, patch(
         "custom_components.configurable_llm.conversation.conversation.async_get_result_from_chat_log",
         return_value=MagicMock(),
     ):
         result = await entity._async_handle_message(user_input, chat_log)
-
-    chat_log.async_provide_llm_data.assert_called_once()
-    # Verify _async_handle_chat_log was called
-    entity._async_handle_chat_log.assert_called_once_with(chat_log)
+        chat_log.async_provide_llm_data.assert_called_once()
+        mock_handle.assert_called_once_with(chat_log)
 
 
 async def test_async_handle_message_converse_error(
@@ -198,7 +198,10 @@ async def test_async_handle_message_hass_api_uses_options(
     chat_log = MagicMock(spec=conversation.ChatLog)
     chat_log.async_provide_llm_data = AsyncMock()
 
-    with patch.object(entity, "_async_handle_chat_log", new=AsyncMock()):
+    with patch.object(entity, "_async_handle_chat_log", new=AsyncMock()), patch(
+        "custom_components.configurable_llm.conversation.conversation.async_get_result_from_chat_log",
+        return_value=MagicMock(),
+    ):
         await entity._async_handle_message(user_input, chat_log)
 
     chat_log.async_provide_llm_data.assert_called_once_with(
@@ -231,7 +234,10 @@ async def test_async_handle_message_uses_prompt_from_options(
     chat_log = MagicMock(spec=conversation.ChatLog)
     chat_log.async_provide_llm_data = AsyncMock()
 
-    with patch.object(entity, "_async_handle_chat_log", new=AsyncMock()):
+    with patch.object(entity, "_async_handle_chat_log", new=AsyncMock()), patch(
+        "custom_components.configurable_llm.conversation.conversation.async_get_result_from_chat_log",
+        return_value=MagicMock(),
+    ):
         await entity._async_handle_message(user_input, chat_log)
 
     chat_log.async_provide_llm_data.assert_called_once()
@@ -259,7 +265,10 @@ async def test_async_handle_message_with_extra_system_prompt(
     chat_log = MagicMock(spec=conversation.ChatLog)
     chat_log.async_provide_llm_data = AsyncMock()
 
-    with patch.object(entity, "_async_handle_chat_log", new=AsyncMock()):
+    with patch.object(entity, "_async_handle_chat_log", new=AsyncMock()), patch(
+        "custom_components.configurable_llm.conversation.conversation.async_get_result_from_chat_log",
+        return_value=MagicMock(),
+    ):
         await entity._async_handle_message(user_input, chat_log)
 
     chat_log.async_provide_llm_data.assert_called_once()

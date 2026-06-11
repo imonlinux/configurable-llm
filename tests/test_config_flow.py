@@ -269,6 +269,7 @@ async def test_flow_subentry_conversation_recommended(
     flow = ConversationSubentryFlowHandler()
     flow.hass = hass
     flow._get_entry = MagicMock(return_value=mock_config_entry)
+    flow.options = {}
 
     with patch(
         "homeassistant.helpers.llm.async_get_apis",
@@ -387,7 +388,7 @@ async def test_flow_subentry_thinking_budget_error(
     flow = ConversationSubentryFlowHandler()
     flow.hass = hass
     flow._get_entry = MagicMock(return_value=mock_config_entry)
-    flow.options = {CONF_NAME: "Test"}
+    flow.options = {CONF_NAME: "Test", CONF_CHAT_MODEL: mock_models_list[0].id}
     flow.model_info = mock_models_list[0]
 
     with patch.object(
@@ -504,6 +505,7 @@ async def test_flow_subentry_recommended_skips_advanced(
     flow = ConversationSubentryFlowHandler()
     flow.hass = hass
     flow._get_entry = MagicMock(return_value=mock_config_entry)
+    flow.options = {}
 
     with patch(
         "homeassistant.helpers.llm.async_get_apis",
