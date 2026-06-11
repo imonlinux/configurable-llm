@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.1.2
+
+### Fixed
+
+- **AI Task platform failed to load** — Added `from __future__ import annotations` to `ai_task.py`. The module annotated a function with `ConfigurableLLMConfigEntry`, which is imported only under `TYPE_CHECKING`; without deferred annotations the name was evaluated at import time and raised `NameError`, preventing the AI Task platform from loading on Home Assistant.
+
+### Added
+
+- Unit test suite covering the conversation, AI task, config flow, coordinator, and entity modules, plus a GitHub Actions workflow running the tests (Python 3.13) and HACS validation. Test-only changes; not part of the installed integration.
+
 ## 1.1.1
 
 ### Added
