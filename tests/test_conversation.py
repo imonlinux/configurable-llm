@@ -131,7 +131,10 @@ async def test_async_handle_message_success(
     chat_log = MagicMock(spec=conversation.ChatLog)
     chat_log.async_provide_llm_data = AsyncMock()
 
-    with patch.object(entity, "_async_handle_chat_log", new=AsyncMock()):
+    with patch.object(entity, "_async_handle_chat_log", new=AsyncMock()), patch(
+        "custom_components.configurable_llm.conversation.conversation.async_get_result_from_chat_log",
+        return_value=MagicMock(),
+    ):
         result = await entity._async_handle_message(user_input, chat_log)
 
     chat_log.async_provide_llm_data.assert_called_once()
@@ -159,7 +162,11 @@ async def test_async_handle_message_converse_error(
     chat_log = MagicMock(spec=conversation.ChatLog)
 
     # Mock async_provide_llm_data to raise ConverseError
-    error = conversation.ConverseError("Test error")
+    error = conversation.ConverseError(
+        "Test error",
+        conversation_id="test_conv_id",
+        response=MagicMock(),
+    )
     error.as_conversation_result = MagicMock(return_value=MagicMock())
     chat_log.async_provide_llm_data = AsyncMock(side_effect=error)
 
