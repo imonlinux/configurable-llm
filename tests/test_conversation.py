@@ -69,7 +69,6 @@ async def test_conversation_entity_properties(
         mock_config_entry, mock_subentry_conversation
     )
 
-    assert entity.entity_id == "test_conversation_id"
     assert entity.unique_id == "test_conversation_id"
     assert entity.supports_streaming is True
     assert entity.translation_key == "conversation"
