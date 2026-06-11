@@ -234,7 +234,6 @@ async def test_flow_subentry_conversation_init(
 
     flow = ConversationSubentryFlowHandler()
     flow.hass = hass
-    flow.source = "user"
     flow._get_entry = MagicMock(return_value=mock_config_entry)
 
     with patch(
@@ -245,6 +244,11 @@ async def test_flow_subentry_conversation_init(
         "_subentry_type",
         new_callable=PropertyMock,
         return_value="conversation",
+    ), patch.object(
+        ConversationSubentryFlowHandler,
+        "source",
+        new_callable=PropertyMock,
+        return_value="user",
     ):
         result = await flow.async_step_user(None)
 
@@ -264,7 +268,6 @@ async def test_flow_subentry_conversation_recommended(
 
     flow = ConversationSubentryFlowHandler()
     flow.hass = hass
-    flow.source = "user"
     flow._get_entry = MagicMock(return_value=mock_config_entry)
 
     with patch(
@@ -275,6 +278,11 @@ async def test_flow_subentry_conversation_recommended(
         "_subentry_type",
         new_callable=PropertyMock,
         return_value="conversation",
+    ), patch.object(
+        ConversationSubentryFlowHandler,
+        "source",
+        new_callable=PropertyMock,
+        return_value="user",
     ):
         result = await flow.async_step_init({
             CONF_NAME: "Test Conversation",
@@ -302,7 +310,6 @@ async def test_flow_subentry_advanced_step(
 
     flow = ConversationSubentryFlowHandler()
     flow.hass = hass
-    flow.source = "user"
     flow._get_entry = MagicMock(return_value=mock_config_entry)
     flow.options = {CONF_RECOMMENDED: False}
 
@@ -314,6 +321,11 @@ async def test_flow_subentry_advanced_step(
         "_subentry_type",
         new_callable=PropertyMock,
         return_value="conversation",
+    ), patch.object(
+        ConversationSubentryFlowHandler,
+        "source",
+        new_callable=PropertyMock,
+        return_value="user",
     ):
         result = await flow.async_step_advanced({
             CONF_CHAT_MODEL: mock_models_list[0].id,
@@ -336,7 +348,6 @@ async def test_flow_subentry_model_step(
 
     flow = ConversationSubentryFlowHandler()
     flow.hass = hass
-    flow.source = "user"
     flow._get_entry = MagicMock(return_value=mock_config_entry)
     flow.options = {
         CONF_NAME: "Test",
@@ -352,6 +363,11 @@ async def test_flow_subentry_model_step(
         "_subentry_type",
         new_callable=PropertyMock,
         return_value="conversation",
+    ), patch.object(
+        ConversationSubentryFlowHandler,
+        "source",
+        new_callable=PropertyMock,
+        return_value="user",
     ):
         result = await flow.async_step_model({})
 
@@ -370,7 +386,6 @@ async def test_flow_subentry_thinking_budget_error(
 
     flow = ConversationSubentryFlowHandler()
     flow.hass = hass
-    flow.source = "user"
     flow._get_entry = MagicMock(return_value=mock_config_entry)
     flow.options = {CONF_NAME: "Test"}
     flow.model_info = mock_models_list[0]
@@ -380,6 +395,11 @@ async def test_flow_subentry_thinking_budget_error(
         "_subentry_type",
         new_callable=PropertyMock,
         return_value="conversation",
+    ), patch.object(
+        ConversationSubentryFlowHandler,
+        "source",
+        new_callable=PropertyMock,
+        return_value="user",
     ):
         result = await flow.async_step_model({
             CONF_MAX_TOKENS: 3000,
@@ -448,7 +468,6 @@ async def test_flow_subentry_reconfigure(
 
     flow = ConversationSubentryFlowHandler()
     flow.hass = hass
-    flow.source = "reconfigure"
     flow._get_entry = MagicMock(return_value=mock_config_entry)
     flow._get_reconfigure_subentry = MagicMock(return_value=mock_subentry_conversation)
 
@@ -460,6 +479,11 @@ async def test_flow_subentry_reconfigure(
         "_subentry_type",
         new_callable=PropertyMock,
         return_value="conversation",
+    ), patch.object(
+        ConversationSubentryFlowHandler,
+        "source",
+        new_callable=PropertyMock,
+        return_value="reconfigure",
     ):
         result = await flow.async_step_reconfigure(None)
 
@@ -479,7 +503,6 @@ async def test_flow_subentry_recommended_skips_advanced(
 
     flow = ConversationSubentryFlowHandler()
     flow.hass = hass
-    flow.source = "user"
     flow._get_entry = MagicMock(return_value=mock_config_entry)
 
     with patch(
@@ -490,6 +513,11 @@ async def test_flow_subentry_recommended_skips_advanced(
         "_subentry_type",
         new_callable=PropertyMock,
         return_value="conversation",
+    ), patch.object(
+        ConversationSubentryFlowHandler,
+        "source",
+        new_callable=PropertyMock,
+        return_value="user",
     ):
         result = await flow.async_step_init({
             CONF_NAME: "Test",
