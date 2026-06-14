@@ -38,3 +38,11 @@ anthropic==0.96.0
 hassil
 home-assistant-intents
 PyTurboJPEG
+
+# Pin aiodns to the 3.x line. aiodns is an OPTIONAL aiohttp dependency (the
+# "speedups" extra) pulled in transitively by the test tree. aiodns 4.x requires
+# pycares>=5.0.0 and references pycares.ares_query_a_result, but the pinned HA
+# tree resolves pycares to the 4.x line, which lacks that symbol — causing an
+# AttributeError at plugin import. aiodns 3.x targets the pycares 4.x API
+# (pycares<5,>=4.9.0) and avoids the symbol entirely.
+aiodns>=3.3.0,<4
