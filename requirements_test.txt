@@ -45,8 +45,14 @@ hassil
 home-assistant-intents
 PyTurboJPEG
 
-# NOTE: aiodns and pycares are intentionally NOT pinned here. Home Assistant
-# 2025.8.1 pins aiodns==3.5.0 (which uses the pycares 4.x API and never touches
-# pycares.ares_query_a_result). Letting HA govern them — combined with the
-# --upgrade install flag — yields a coherent tree. Adding our own aiodns/pycares
-# pins only creates conflicts with HA's exact pin.
+# Pin aiodns to EXACTLY the version Home Assistant 2025.8.1 requires
+# (aiodns==3.5.0). This is not redundant with HA's transitive pin: the GitHub
+# runner image PRE-INSTALLS aiodns 4.x at the system level, and neither a plain
+# install nor `pip install --upgrade` will DOWNGRADE an already-installed
+# package — so the pre-baked 4.x lingers and crashes at import with
+# `pycares has no attribute ares_query_a_result` (a symbol only 4.x references).
+# An explicit `==` pin forces pip to install exactly 3.5.0, dislodging the
+# pre-baked 4.x. aiodns 3.5.0 uses the pycares 4.x API and matches HA's pin, so
+# there is no conflict. The workflow also uninstalls aiodns/pycares before
+# installing, as a belt-and-suspenders guard against the pre-baked versions.
+aiodns==3.5.0
