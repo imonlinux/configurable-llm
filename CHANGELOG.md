@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.1.3
+
+### Fixed
+
+- **Integration failed to load on Home Assistant 2025.8** — Added `from __future__ import annotations` to `entity.py`. The module used `conversation.ToolResultContentDeltaDict` in type annotations, but that symbol does not exist in Home Assistant 2025.8 (the integration's minimum supported version); without deferred annotations it was evaluated at import time and raised `AttributeError`, preventing the conversation and AI Task platforms from loading. This is the same class of fix applied to `ai_task.py` in 1.1.2.
+- **Config flow help text cleaned up** — Reworded the base URL field description to remove embedded example URLs (which are not permitted in translation strings), pointing to the documentation for provider-specific URLs instead. Provider examples remain available in `docs/PROVIDERS.md`.
+
+### Changed
+
+- Added a Hassfest validation workflow and updated GitHub Actions to current versions (Node 24 compatible). CI now runs the test suite, HACS validation, and Hassfest. Repository/CI changes only; not part of the installed integration.
+
 ## 1.1.2
 
 ### Fixed
