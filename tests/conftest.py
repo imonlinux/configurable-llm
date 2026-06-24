@@ -208,7 +208,7 @@ def entity_registry(hass: HomeAssistant) -> er.EntityRegistry:
 @pytest.fixture
 def mock_add_entities() -> AddEntitiesCallback:
     """Return a mock add entities callback."""
-    return AsyncMock()
+    return MagicMock()
 
 
 @pytest.fixture
