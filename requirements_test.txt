@@ -2,28 +2,18 @@
 #
 # pytest-homeassistant-custom-component tracks home-assistant/core; the patch
 # number (0.13.X) increments with each HA release, and the bundled Home
-# Assistant version determines the ENTIRE transitive tree (including hassil,
-# home-assistant-intents, aiodns/pycares, and other per-component deps).
+# Assistant version determines most of the transitive tree (hassil,
+# home-assistant-intents, aiodns, and other per-component deps).
 #
-# This is PINNED (==) rather than a floor (>=) on purpose. An unbounded floor
-# lets pip pull whichever plugin is newest at run time, which bundles a newer
+# The plugin is PINNED (==) rather than a floor (>=) on purpose. An unbounded
+# floor lets pip pull whichever plugin is newest at run time, bundling a newer
 # HA whose transitive pins then conflict with the bare component requirements
-# below — producing intermittent "ModuleNotFoundError" or resolution failures
-# that appear without any change to this repo. Pinning the plugin locks HA to a
-# single coherent tree, so the per-component packages below resolve to exactly
-# the versions that HA 2025.8.1 expects.
+# below — producing intermittent failures with no change to this repo. Pinning
+# the plugin locks HA to a single coherent tree (HA 2025.8.1).
 #
 # 0.13.270 bundles homeassistant==2025.8.1, the minimum HA this integration
-# targets (first tree with the ConfigSubentry / AI Task APIs it uses). Plugin
-# versions 0.13.206+ require Python >= 3.13, so CI must run on Python 3.13+
-# (see .github/workflows/tests.yaml). To move to a newer HA later, bump this
-# single pin to the plugin version bundling the desired HA release.
-#
-# NOTE: the install step in the workflow uses `pip install --upgrade` so that
-# pip actively resolves to Home Assistant's pinned transitive versions, rather
-# than leaving newer packages that the GitHub runner image pre-installs (e.g.
-# aiodns) in place. Without --upgrade, a pre-baked aiodns 4.x lingers and
-# crashes at import with `pycares has no attribute ares_query_a_result`.
+# targets. Plugin versions 0.13.206+ require Python >= 3.13, so CI must run on
+# Python 3.13+ (see .github/workflows/tests.yaml).
 pytest-homeassistant-custom-component==0.13.270
 
 pytest>=8.0.0
@@ -34,25 +24,22 @@ pytest-timeout>=2.3.0
 # Runtime dependency of this integration, not provided by Home Assistant itself.
 anthropic==0.96.0
 
-# Per-component requirements that the base plugin does NOT install but the
-# integration's platforms import at module load. Left unpinned so the pinned
-# Home Assistant tree above decides the exact compatible versions:
+# Per-component requirements the base plugin does NOT install but the
+# integration's platforms import at module load. Unpinned so the pinned HA tree
+# decides exact versions:
 #   - conversation -> `from hassil.recognize import RecognizeResult`
 #   - ai_task -> camera -> `from turbojpeg import TurboJPEG`
-# PyTurboJPEG's *import* succeeds without the native libturbojpeg system library
-# (only JPEG decoding needs it, which the tests never do), so no apt step.
+# PyTurboJPEG's *import* succeeds without the native libturbojpeg library (only
+# JPEG decoding needs it, which the tests never do), so no apt step.
 hassil
 home-assistant-intents
 PyTurboJPEG
 
-# Pin aiodns to EXACTLY the version Home Assistant 2025.8.1 requires
-# (aiodns==3.5.0). This is not redundant with HA's transitive pin: the GitHub
-# runner image PRE-INSTALLS aiodns 4.x at the system level, and neither a plain
-# install nor `pip install --upgrade` will DOWNGRADE an already-installed
-# package — so the pre-baked 4.x lingers and crashes at import with
-# `pycares has no attribute ares_query_a_result` (a symbol only 4.x references).
-# An explicit `==` pin forces pip to install exactly 3.5.0, dislodging the
-# pre-baked 4.x. aiodns 3.5.0 uses the pycares 4.x API and matches HA's pin, so
-# there is no conflict. The workflow also uninstalls aiodns/pycares before
-# installing, as a belt-and-suspenders guard against the pre-baked versions.
-aiodns==3.5.0
+# Pin pycares to the 4.x line. Home Assistant 2025.8.1 pins aiodns==3.5.0, and
+# aiodns 3.5.0 references `pycares.ares_query_a_result` in its type hints. That
+# symbol exists in pycares 4.9.0–4.11.x but was REMOVED in pycares 5.0.0. The
+# GitHub runner image pre-installs pycares 5.x, so without this pin aiodns fails
+# at import with `module 'pycares' has no attribute 'ares_query_a_result'`.
+# `>=4.9.0,<5` satisfies aiodns 3.5.0's own requirement (pycares>=4.9.0) and
+# guarantees the symbol is present. aiodns itself is left to HA's pin (3.5.0).
+pycares>=4.9.0,<5
