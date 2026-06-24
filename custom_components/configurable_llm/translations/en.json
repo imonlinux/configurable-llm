@@ -10,7 +10,7 @@
         },
         "data_description": {
           "api_key": "Your API key for the LLM service. For the official Anthropic API this starts with `sk-ant-`. Alternative providers issue their own keys.",
-          "base_url": "The base URL of your LLM API endpoint. Leave as the default for the official Anthropic API, or replace with your provider's URL (e.g., `https://api.z.ai/api/anthropic` for z.ai, or `http://localhost:8080/v1/` for a local server)."
+          "base_url": "The base URL of your LLM API endpoint. Leave the default for the official Anthropic API, or enter your provider's URL for an Anthropic-compatible service or self-hosted server. See the documentation for provider-specific URLs."
         }
       },
       "reauth_confirm": {
