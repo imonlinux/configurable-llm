@@ -1,3 +1,0 @@
-anthropic==0.96.0
-voluptuous>=0.13.1
-voluptuous-openapi>=0.1.0
