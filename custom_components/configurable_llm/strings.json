@@ -3,14 +3,18 @@
     "step": {
       "user": {
         "title": "Connect to LLM API",
-        "description": "Set up your Configurable LLM connection. This integration works with the official Anthropic API and any Anthropic-compatible endpoint, including z.ai and self-hosted servers.",
+        "description": "Set up your Configurable LLM connection. This integration speaks the Anthropic Messages API and the OpenAI Chat Completions API, so it works with the official Anthropic API, z.ai, and any OpenAI-compatible endpoint including local servers (LM Studio, Ollama, vLLM), OpenRouter, Groq and more.",
         "data": {
+          "preset": "Provider",
+          "protocol": "API protocol",
           "api_key": "API key",
           "base_url": "API base URL"
         },
         "data_description": {
-          "api_key": "Your API key for the LLM service. For the official Anthropic API this starts with `sk-ant-`. Alternative providers issue their own keys.",
-          "base_url": "The base URL of your LLM API endpoint. Leave the default for the official Anthropic API, or enter your provider's URL for an Anthropic-compatible service or self-hosted server. See the documentation for provider-specific URLs."
+          "preset": "Pick a provider to pre-fill the protocol and base URL. Choose Custom to enter them yourself.",
+          "protocol": "The API contract your endpoint speaks. Anthropic for the Anthropic Messages API; OpenAI Chat Completions for OpenAI-compatible servers.",
+          "api_key": "Your API key for the LLM service. For the official Anthropic API this starts with `sk-ant-`. Alternative providers issue their own keys; local servers often accept any value.",
+          "base_url": "The base URL of your LLM API endpoint. Filled in by the provider preset; override it (or use Custom) for a self-hosted server. See the documentation for provider-specific URLs."
         }
       },
       "reauth_confirm": {
@@ -65,11 +69,15 @@
           "description": "Choose which model to use and how prompt caching should work.",
           "data": {
             "chat_model": "Model",
-            "prompt_caching": "Caching strategy"
+            "prompt_caching": "Caching strategy",
+            "temperature": "Temperature",
+            "top_p": "Top P"
           },
           "data_description": {
             "chat_model": "The model used to generate responses. You can pick from the list or type a model ID for providers that don't expose a list endpoint.",
-            "prompt_caching": "Optimise cost and response time. **Disabled** sends everything fresh each time, **System prompt** caches the system prompt and tools, and **Full** also caches every user message."
+            "prompt_caching": "Optimise cost and response time (Anthropic). **Disabled** sends everything fresh each time, **System prompt** caches the system prompt and tools, and **Full** also caches every user message.",
+            "temperature": "Sampling temperature for OpenAI-compatible models (0–2). Higher is more random.",
+            "top_p": "Nucleus sampling cutoff for OpenAI-compatible models (0–1)."
           }
         },
         "model": {
@@ -85,7 +93,8 @@
             "user_location": "Include home location",
             "web_fetch": "Web fetch",
             "web_fetch_max_uses": "Maximum web fetches",
-            "tool_search": "Tool search"
+            "tool_search": "Tool search",
+            "reasoning_effort": "Reasoning effort"
           },
           "data_description": {
             "max_tokens": "Maximum length of each response, in tokens.",
@@ -97,7 +106,8 @@
             "user_location": "Use your Home Assistant home location to localise web search results.",
             "web_fetch": "Allow the model to retrieve full content from specified web pages and PDF documents to augment its context with live web content.",
             "web_fetch_max_uses": "Limit the number of web fetches the model can perform in a single response.",
-            "tool_search": "Discover Home Assistant tools on demand instead of loading them all upfront. Useful when many tools are exposed."
+            "tool_search": "Discover Home Assistant tools on demand instead of loading them all upfront. Useful when many tools are exposed.",
+            "reasoning_effort": "Reasoning effort for OpenAI-compatible reasoning models. Leave at Default if your model or server does not support it."
           }
         }
       },
@@ -135,11 +145,15 @@
           "description": "Choose which model to use and how prompt caching should work.",
           "data": {
             "chat_model": "Model",
-            "prompt_caching": "Caching strategy"
+            "prompt_caching": "Caching strategy",
+            "temperature": "Temperature",
+            "top_p": "Top P"
           },
           "data_description": {
             "chat_model": "The model used to generate responses. You can pick from the list or type a model ID for providers that don't expose a list endpoint.",
-            "prompt_caching": "Optimise cost and response time. **Disabled** sends everything fresh each time, **System prompt** caches the system prompt and tools, and **Full** also caches every user message."
+            "prompt_caching": "Optimise cost and response time (Anthropic). **Disabled** sends everything fresh each time, **System prompt** caches the system prompt and tools, and **Full** also caches every user message.",
+            "temperature": "Sampling temperature for OpenAI-compatible models (0–2). Higher is more random.",
+            "top_p": "Nucleus sampling cutoff for OpenAI-compatible models (0–1)."
           }
         },
         "model": {
@@ -155,7 +169,8 @@
             "user_location": "Include home location",
             "web_fetch": "Web fetch",
             "web_fetch_max_uses": "Maximum web fetches",
-            "tool_search": "Tool search"
+            "tool_search": "Tool search",
+            "reasoning_effort": "Reasoning effort"
           },
           "data_description": {
             "max_tokens": "Maximum length of each response, in tokens.",
@@ -167,7 +182,8 @@
             "user_location": "Use your Home Assistant home location to localise web search results.",
             "web_fetch": "Allow the model to retrieve full content from specified web pages and PDF documents to augment its context with live web content.",
             "web_fetch_max_uses": "Limit the number of web fetches the model can perform in a single response.",
-            "tool_search": "Discover Home Assistant tools on demand instead of loading them all upfront. Useful when many tools are exposed."
+            "tool_search": "Discover Home Assistant tools on demand instead of loading them all upfront. Useful when many tools are exposed.",
+            "reasoning_effort": "Reasoning effort for OpenAI-compatible reasoning models. Leave at Default if your model or server does not support it."
           }
         }
       },
@@ -183,6 +199,24 @@
     }
   },
   "selector": {
+    "protocol": {
+      "options": {
+        "anthropic": "Anthropic",
+        "openai": "OpenAI Chat Completions"
+      }
+    },
+    "preset": {
+      "options": {
+        "anthropic": "Anthropic",
+        "zai": "z.ai (Anthropic-compatible)",
+        "openai": "OpenAI",
+        "openrouter": "OpenRouter",
+        "groq": "Groq",
+        "ollama": "Ollama (local)",
+        "lmstudio": "LM Studio (local)",
+        "custom": "Custom"
+      }
+    },
     "prompt_caching": {
       "options": {
         "off": "Disabled",
@@ -198,6 +232,14 @@
         "high": "High",
         "xhigh": "X-High",
         "max": "Max"
+      }
+    },
+    "reasoning_effort": {
+      "options": {
+        "none": "Default (none)",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
       }
     }
   },

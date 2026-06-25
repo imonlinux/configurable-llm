@@ -23,6 +23,7 @@ pytest-timeout>=2.3.0
 
 # Runtime dependency of this integration, not provided by Home Assistant itself.
 anthropic==0.96.0
+openai==2.21.0
 
 # Per-component requirements the base plugin does NOT install but the
 # integration's platforms import at module load. Unpinned so the pinned HA tree

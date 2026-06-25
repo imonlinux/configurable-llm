@@ -27,7 +27,9 @@ from homeassistant.const import (
     CONF_PROMPT,
 )
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import config_validation as cv, llm
+from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.helpers.httpx_client import get_async_client
 from homeassistant.helpers.selector import (
     NumberSelector,
@@ -45,11 +47,16 @@ from .const import (
     CONF_CHAT_MODEL,
     CONF_CODE_EXECUTION,
     CONF_MAX_TOKENS,
+    CONF_PRESET,
+    CONF_PROTOCOL,
     CONF_PROMPT_CACHING,
+    CONF_REASONING_EFFORT,
     CONF_RECOMMENDED,
+    CONF_TEMPERATURE,
     CONF_THINKING_BUDGET,
     CONF_THINKING_EFFORT,
     CONF_TOOL_SEARCH,
+    CONF_TOP_P,
     CONF_WEB_FETCH,
     CONF_WEB_FETCH_MAX_USES,
     CONF_WEB_SEARCH,
@@ -63,21 +70,58 @@ from .const import (
     DEFAULT_AI_TASK_NAME,
     DEFAULT_BASE_URL,
     DEFAULT_CONVERSATION_NAME,
+    DEFAULT_OPENAI,
+    DEFAULT_PROTOCOL,
     DOMAIN,
     MIN_THINKING_BUDGET,
+    PRESET_CUSTOM,
+    PRESETS,
+    PROTOCOL_ANTHROPIC,
+    PROTOCOL_OPENAI,
+    REASONING_EFFORT_OPTIONS,
     TOOL_SEARCH_UNSUPPORTED_MODELS,
     PromptCaching,
+    get_preset,
 )
+from .providers import get_provider
 
 if TYPE_CHECKING:
     from . import ConfigurableLLMConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
+_PROTOCOL_OPTIONS = [
+    SelectOptionDict(value=PROTOCOL_ANTHROPIC, label="Anthropic"),
+    SelectOptionDict(value=PROTOCOL_OPENAI, label="OpenAI Chat Completions"),
+]
+
+
+def _preset_options() -> list[SelectOptionDict]:
+    """Build the provider-preset selector options (labels via translations)."""
+    return [
+        SelectOptionDict(value=cast(str, preset["value"]), label=cast(str, preset["value"]))
+        for preset in PRESETS
+    ]
+
+
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
+        vol.Required(CONF_PRESET, default=PROTOCOL_ANTHROPIC): SelectSelector(
+            SelectSelectorConfig(
+                options=_preset_options(),
+                translation_key=CONF_PRESET,
+                mode=SelectSelectorMode.DROPDOWN,
+            )
+        ),
+        vol.Optional(CONF_PROTOCOL, default=DEFAULT_PROTOCOL): SelectSelector(
+            SelectSelectorConfig(
+                options=_PROTOCOL_OPTIONS,
+                translation_key=CONF_PROTOCOL,
+                mode=SelectSelectorMode.DROPDOWN,
+            )
+        ),
         vol.Required(CONF_API_KEY): str,
-        vol.Optional(CONF_BASE_URL, default=DEFAULT_BASE_URL): str,
+        vol.Optional(CONF_BASE_URL): str,
     }
 )
 
@@ -102,25 +146,37 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> None:
     """Validate the user input allows us to connect.
 
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
+    Raises ``ValueError`` (bad URL), or HA exceptions from the provider's
+    credential probe (``ConfigEntryAuthFailed`` / ``TimeoutError`` /
+    ``UpdateFailed``), which the caller maps to UI error keys.
     """
-    base_url = data.get(CONF_BASE_URL, DEFAULT_BASE_URL)
+    provider = get_provider(data.get(CONF_PROTOCOL, DEFAULT_PROTOCOL))
+    base_url = data.get(CONF_BASE_URL, provider.default_base_url)
 
     if not base_url.startswith(("http://", "https://")):
         raise ValueError("Base URL must start with http:// or https://")
 
-    client = anthropic.AsyncAnthropic(
-        api_key=data[CONF_API_KEY],
-        base_url=base_url,
-        http_client=get_async_client(hass),
-    )
-    await client.models.list(timeout=10.0)
+    await provider.validate_credentials(hass, data)
 
 
 class ConfigurableLLMConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Configurable LLM."""
 
-    VERSION = 1
+    VERSION = 2
     MINOR_VERSION = 1
+
+    async def async_migrate_entry(
+        self, hass: HomeAssistant, entry: "ConfigurableLLMConfigEntry"
+    ) -> bool:
+        """Migrate old config entries."""
+        if entry.version == 1:
+            # v1 entries predate the protocol selector; assume Anthropic.
+            await hass.config_entries.async_update_entry(
+                entry,
+                data={**entry.data, CONF_PROTOCOL: PROTOCOL_ANTHROPIC},
+                version=2,
+            )
+        return True
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -129,35 +185,47 @@ class ConfigurableLLMConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # On reauth the existing entry already has a base_url; merge it in so
-            # validation can run against the same endpoint.
+            # On reauth the existing entry already has base_url/protocol; merge
+            # them in so validation runs against the same endpoint.
             if self.source == SOURCE_REAUTH:
                 user_input = {
                     **self._get_reauth_entry().data,
                     **user_input,
                 }
+
+            # A preset fills protocol + base_url; "custom" uses the explicit
+            # protocol selector and the typed base_url.
+            preset_value = user_input.get(CONF_PRESET) or PRESET_CUSTOM
+            preset = get_preset(preset_value)
+            if preset and preset_value != PRESET_CUSTOM:
+                user_input[CONF_PROTOCOL] = cast(str, preset["protocol"])
+                user_input[CONF_BASE_URL] = cast(str, preset["base_url"])
+            user_input.setdefault(CONF_PROTOCOL, DEFAULT_PROTOCOL)
+            if not user_input.get(CONF_BASE_URL):
+                user_input[CONF_BASE_URL] = get_provider(
+                    user_input[CONF_PROTOCOL]
+                ).default_base_url
+
             self._async_abort_entries_match({CONF_API_KEY: user_input[CONF_API_KEY]})
             try:
                 await validate_input(self.hass, user_input)
-            except anthropic.APITimeoutError:
+            except ConfigEntryAuthFailed:
+                errors["base"] = "authentication_error"
+            except TimeoutError:
                 errors["base"] = "timeout_connect"
-            except anthropic.APIConnectionError:
+            except UpdateFailed:
                 errors["base"] = "cannot_connect"
-            except anthropic.APIStatusError as e:
-                errors["base"] = "unknown"
-                if (
-                    isinstance(e.body, dict)
-                    and (error := e.body.get("error"))
-                    and error.get("type") == "authentication_error"
-                ):
-                    errors["base"] = "authentication_error"
             except ValueError:
                 errors["base"] = "invalid_url_format"
             except Exception:
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
             else:
+                # preset is a setup convenience, not persisted on the entry.
+                user_input.pop(CONF_PRESET, None)
                 if self.source == SOURCE_REAUTH:
+                    user_input.pop(CONF_PROTOCOL, None)
+                    user_input.pop(CONF_BASE_URL, None)
                     return self.async_update_reload_and_abort(
                         self._get_reauth_entry(), data_updates=user_input
                     )
@@ -343,7 +411,12 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
         description_placeholders: dict[str, str] = {}
 
         coordinator = self._get_entry().runtime_data
-        default_model = coordinator.get_default_model(DEFAULT[CONF_CHAT_MODEL])
+        provider = coordinator.provider
+        default_model = coordinator.get_default_model(
+            DEFAULT_OPENAI[CONF_CHAT_MODEL]
+            if provider.key == PROTOCOL_OPENAI
+            else DEFAULT[CONF_CHAT_MODEL]
+        )
 
         step_schema: VolDictType = {
             vol.Optional(
@@ -352,17 +425,39 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
             ): SelectSelector(
                 SelectSelectorConfig(options=self._get_model_list(), custom_value=True)
             ),
-            vol.Optional(
-                CONF_PROMPT_CACHING,
-                default=DEFAULT[CONF_PROMPT_CACHING],
-            ): SelectSelector(
+        }
+        if provider.key == PROTOCOL_ANTHROPIC:
+            step_schema[
+                vol.Optional(
+                    CONF_PROMPT_CACHING,
+                    default=DEFAULT[CONF_PROMPT_CACHING],
+                )
+            ] = SelectSelector(
                 SelectSelectorConfig(
                     options=[x.value for x in PromptCaching],
                     translation_key=CONF_PROMPT_CACHING,
                     mode=SelectSelectorMode.DROPDOWN,
                 )
-            ),
-        }
+            )
+        else:  # OpenAI Chat Completions
+            step_schema[
+                vol.Optional(
+                    CONF_TEMPERATURE,
+                    default=DEFAULT_OPENAI[CONF_TEMPERATURE],
+                )
+            ] = vol.All(
+                NumberSelector(NumberSelectorConfig(min=0, max=2, step=0.1)),
+                vol.Coerce(float),
+            )
+            step_schema[
+                vol.Optional(
+                    CONF_TOP_P,
+                    default=DEFAULT_OPENAI[CONF_TOP_P],
+                )
+            ] = vol.All(
+                NumberSelector(NumberSelectorConfig(min=0, max=1, step=0.05)),
+                vol.Coerce(float),
+            )
 
         if user_input is not None:
             self.options.update(user_input)
@@ -371,19 +466,16 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
                 self.options[CONF_CHAT_MODEL]
             )
             if not status:
-                # Couldn't find the model in the cached list, try to fetch it directly
-                client = coordinator.client
-                try:
-                    self.model_info = await client.models.retrieve(
-                        self.options[CONF_CHAT_MODEL], timeout=10.0
-                    )
-                except anthropic.NotFoundError:
-                    errors[CONF_CHAT_MODEL] = "model_not_found"
-                except anthropic.AnthropicError as err:
-                    errors[CONF_CHAT_MODEL] = "api_error"
-                    description_placeholders["message"] = (
-                        err.message if isinstance(err, anthropic.APIError) else str(err)
-                    )
+                # Not in the cached list; ask the provider to resolve it.
+                fetched, err_key, err_msg = await provider.fetch_model(
+                    coordinator, self.options[CONF_CHAT_MODEL]
+                )
+                if err_key:
+                    errors[CONF_CHAT_MODEL] = err_key
+                    if err_msg:
+                        description_placeholders["message"] = err_msg
+                elif fetched is not None:
+                    self.model_info = fetched
 
             if not errors:
                 return await self.async_step_model()
@@ -397,12 +489,8 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
             description_placeholders=description_placeholders,
         )
 
-    async def async_step_model(
-        self, user_input: dict[str, Any] | None = None
-    ) -> SubentryFlowResult:
-        """Manage model-specific options."""
-        errors: dict[str, str] = {}
-
+    def _anthropic_model_schema(self) -> VolDictType:
+        """Build the Anthropic, capability-gated model-step schema."""
         step_schema: VolDictType = {
             vol.Optional(
                 CONF_MAX_TOKENS,
@@ -517,13 +605,48 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
         else:
             self.options.pop(CONF_TOOL_SEARCH, None)
 
+        return step_schema
+
+    def _openai_model_schema(self) -> VolDictType:
+        """Build the OpenAI Chat Completions model-step schema."""
+        return {
+            vol.Optional(
+                CONF_MAX_TOKENS,
+                default=DEFAULT_OPENAI[CONF_MAX_TOKENS],
+            ): cv.positive_int,
+            vol.Optional(
+                CONF_REASONING_EFFORT,
+                default=DEFAULT_OPENAI[CONF_REASONING_EFFORT],
+            ): SelectSelector(
+                SelectSelectorConfig(
+                    options=REASONING_EFFORT_OPTIONS,
+                    translation_key=CONF_REASONING_EFFORT,
+                    mode=SelectSelectorMode.DROPDOWN,
+                )
+            ),
+        }
+
+    async def async_step_model(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Manage model-specific options."""
+        errors: dict[str, str] = {}
+        provider = self._get_entry().runtime_data.provider
+
+        if provider.key == PROTOCOL_ANTHROPIC:
+            step_schema = self._anthropic_model_schema()
+            is_anthropic = True
+        else:
+            step_schema = self._openai_model_schema()
+            is_anthropic = False
+
         if not step_schema:
             # Currently our schema is always present, but if one day it becomes empty,
             # then the below line is needed to skip this step
             user_input = {}  # pragma: no cover
 
         if user_input is not None:
-            if (
+            if is_anthropic and (
                 CONF_THINKING_BUDGET in user_input
                 and user_input[CONF_THINKING_BUDGET] >= MIN_THINKING_BUDGET
                 and user_input[CONF_THINKING_BUDGET]
@@ -531,7 +654,11 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
             ):
                 errors[CONF_THINKING_BUDGET] = "thinking_budget_too_large"
 
-            if user_input.get(CONF_WEB_SEARCH, DEFAULT[CONF_WEB_SEARCH]) and not errors:
+            if (
+                is_anthropic
+                and user_input.get(CONF_WEB_SEARCH, DEFAULT[CONF_WEB_SEARCH])
+                and not errors
+            ):
                 if user_input.get(
                     CONF_WEB_SEARCH_USER_LOCATION,
                     DEFAULT[CONF_WEB_SEARCH_USER_LOCATION],

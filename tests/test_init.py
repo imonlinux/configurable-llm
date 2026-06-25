@@ -37,7 +37,8 @@ async def test_async_setup_entry(
     mock_config_entry.subentries = {}
 
     with patch(
-        "custom_components.configurable_llm.coordinator.anthropic.AsyncAnthropic",
+        "custom_components.configurable_llm.providers.anthropic_provider"
+        ".anthropic.AsyncAnthropic",
         return_value=mock_anthropic_client,
     ):
         result = await async_setup_entry(hass, mock_config_entry)
@@ -72,7 +73,8 @@ async def test_async_setup_entry_with_deprecated_model(
     mock_config_entry.runtime_data = None
 
     with patch(
-        "custom_components.configurable_llm.coordinator.anthropic.AsyncAnthropic",
+        "custom_components.configurable_llm.providers.anthropic_provider"
+        ".anthropic.AsyncAnthropic",
         return_value=mock_anthropic_client,
     ), patch(
         "homeassistant.helpers.issue_registry.async_create_issue"

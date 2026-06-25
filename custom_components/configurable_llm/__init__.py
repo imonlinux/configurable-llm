@@ -1,7 +1,5 @@
 """The Configurable LLM integration."""
 
-from anthropic.resources.messages.messages import DEPRECATED_MODELS
-
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv, issue_registry as ir
@@ -38,7 +36,7 @@ async def async_setup_entry(
     # Surface a repair issue if any subentry is using a deprecated model.
     for subentry in entry.subentries.values():
         model = subentry.data.get(CONF_CHAT_MODEL)
-        if model and model in DEPRECATED_MODELS:
+        if model and coordinator.provider.is_model_deprecated(model):
             ir.async_create_issue(
                 hass,
                 DOMAIN,

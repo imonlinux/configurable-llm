@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.0
+
+### Fixed
+
+- **Deprecated-model repair flow failed to load** — `repairs.py` imported `RepairsFlowResult`, which is not exported by Home Assistant 2025.8.1, so the module raised `ImportError` whenever the deprecated-model repair flow was opened. Now uses `FlowResult` from `homeassistant.data_entry_flow`. (Latent bug: the flow is only reached when a deprecated model is in use, so it never surfaced in tests.)
+
+### Added
+
+- **OpenAI Chat Completions protocol** — the integration is now provider-pluggable. Alongside the existing Anthropic Messages API it can target any OpenAI-compatible endpoint via `/v1/chat/completions`: OpenAI, OpenRouter, Groq, Together, Ollama, LM Studio, vLLM, llama.cpp, Mistral, and self-hosted servers. (Not OpenAI's Responses API, which is cloud-only and already covered by core's OpenAI integration.)
+- **Provider preset picker** in setup — choose a provider to pre-fill the API protocol and base URL (with a Custom option).
+- Per-protocol model options: OpenAI entries expose temperature, top P, and reasoning effort instead of Anthropic's thinking budget / prompt caching.
+- Config-entry migration from v1 to v2 (existing entries gain `protocol=anthropic`).
+
+### Changed
+
+- **Internal provider interface** — Anthropic-specific request/streaming/model logic moved behind a `providers/` abstraction (`LLMProvider`). The conversation/AI-task entity and coordinator are now protocol-agnostic; the existing Anthropic behavior is preserved exactly (behavior-preserving refactor, full test suite green).
+- `openai==2.21.0` added to requirements; both the `anthropic` and `openai` SDKs now ship with the integration.
+- Repairs and diagnostics are routed through the active provider (the deprecated-model repair remains Anthropic-only).
+
+> Note: a `1.1.3` release was referenced in earlier notes but was never published; `1.2.0` follows the shipped `1.1.2`.
+
 ## 1.1.2
 
 ### Fixed
