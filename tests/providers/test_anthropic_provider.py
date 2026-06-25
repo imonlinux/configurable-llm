@@ -58,6 +58,13 @@ def test_model_alias_preserves_non_standard_formatting() -> None:
         assert provider.model_alias(model_id) == model_id
 
 
+def test_defaults() -> None:
+    """Anthropic exposes its DEFAULT option dict via the provider interface."""
+    from custom_components.configurable_llm.const import DEFAULT
+
+    assert provider.defaults() == DEFAULT
+
+
 # --------------------------------------------------------------------------- #
 # dataclasses (moved from test_entity.py)
 # --------------------------------------------------------------------------- #

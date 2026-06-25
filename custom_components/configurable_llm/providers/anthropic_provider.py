@@ -131,6 +131,7 @@ from homeassistant.util.json import JsonArrayType, JsonObjectType
 from ..const import (
     CONF_CODE_EXECUTION,
     CONF_MAX_TOKENS,
+    DEFAULT,
     CONF_PROMPT_CACHING,
     CONF_THINKING_BUDGET,
     CONF_THINKING_EFFORT,
@@ -1044,6 +1045,10 @@ class AnthropicProvider(LLMProvider):
     def model_alias(self, model_id: str) -> str:
         """Resolve alias from a versioned Anthropic model name."""
         return _model_alias(model_id)
+
+    def defaults(self) -> dict[str, Any]:
+        """Anthropic default options."""
+        return DEFAULT
 
     async def fetch_model(
         self, coordinator: ConfigurableLLMCoordinator, model_id: str

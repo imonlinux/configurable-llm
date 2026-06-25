@@ -66,7 +66,8 @@ These providers implement the OpenAI Chat Completions API (`/v1/chat/completions
 **Things to watch for:**
 
 - OpenAI-compatible `/v1/models` endpoints return **no capability information**, so the integration can't auto-detect features. Configure temperature/top P/reasoning effort manually; leave unsupported tool toggles off.
-- **Reasoning effort** is model-dependent — only set it above *Default* for reasoning models (e.g. o-series). Some local servers reject the parameter.
+- **Reasoning models on the official OpenAI API (o-series, gpt-5) are not supported.** Those models reject `max_tokens` (they require `max_completion_tokens`) and reject a non-default temperature, so requests `400`. This integration always sends `max_tokens` — deliberately, because the primary target is chat models and compatible/local servers (vLLM, Ollama, LM Studio, …) that accept it. Point this rail at chat models (e.g. `gpt-4o-mini`) or compatible/local servers, not OpenAI-hosted reasoning models. (Branching on model-id prefixes would reintroduce the OpenAI-proper coupling this rail exists to avoid.)
+- **Reasoning effort** is model-dependent — only set it above *Default* for reasoning-capable models, and expect some local servers to reject the parameter.
 - **Attachments** are image-only on this protocol (vision models); PDFs are not supported via Chat Completions.
 - **Structured output** uses the `json_schema` response format, supported by OpenAI and by vLLM/Ollama guided decoding. Servers without it will error on AI Task structured output.
 

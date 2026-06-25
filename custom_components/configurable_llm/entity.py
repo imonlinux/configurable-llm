@@ -9,7 +9,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_CHAT_MODEL, DEFAULT, DOMAIN, LOGGER
+from .const import CONF_CHAT_MODEL, DOMAIN, LOGGER
 from .coordinator import ConfigurableLLMConfigEntry, ConfigurableLLMCoordinator
 from .providers import ProviderError, ProviderRequestContext
 
@@ -39,7 +39,9 @@ class ConfigurableLLMBaseEntity(CoordinatorEntity[ConfigurableLLMCoordinator]):
         self.model_info, _ = coordinator.get_model_info(
             subentry.data.get(
                 CONF_CHAT_MODEL,
-                coordinator.get_default_model(DEFAULT[CONF_CHAT_MODEL]),
+                coordinator.get_default_model(
+                    coordinator.provider.defaults()[CONF_CHAT_MODEL]
+                ),
             )
         )
         self._attr_unique_id = subentry.subentry_id
@@ -73,7 +75,7 @@ class ConfigurableLLMBaseEntity(CoordinatorEntity[ConfigurableLLMCoordinator]):
             hass=self.hass,
             chat_log=chat_log,
             model=self.model_info,
-            options=DEFAULT | self.subentry.data,
+            options=provider.defaults() | self.subentry.data,
             structure_name=structure_name,
             structure=structure,
         )

@@ -17,6 +17,7 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 import voluptuous as vol
 
 from custom_components.configurable_llm.const import (
+    CONF_CHAT_MODEL,
     CONF_MAX_TOKENS,
     CONF_REASONING_EFFORT,
     CONF_TEMPERATURE,
@@ -452,3 +453,9 @@ def test_diagnostics_metadata() -> None:
     """Diagnostics reports the openai SDK version."""
     meta = provider.diagnostics_metadata()
     assert meta == {"client": f"openai=={openai.__version__}"}
+
+
+def test_defaults() -> None:
+    """OpenAI exposes its DEFAULT_OPENAI option dict via the provider interface."""
+    assert provider.defaults() == DEFAULT_OPENAI
+    assert provider.defaults()[CONF_CHAT_MODEL] == "gpt-4o-mini"

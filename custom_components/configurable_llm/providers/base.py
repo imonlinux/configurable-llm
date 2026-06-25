@@ -129,6 +129,16 @@ class LLMProvider(ABC):
             return models[0].id
         return fallback
 
+    @abstractmethod
+    def defaults(self) -> dict[str, Any]:
+        """Return this provider's default option dict.
+
+        Merged with a subentry's data to form the runtime options, so defaults
+        are authoritative per protocol (e.g. ``DEFAULT`` for Anthropic,
+        ``DEFAULT_OPENAI`` for OpenAI Chat Completions) rather than one
+        protocol's constants leaking into another.
+        """
+
     # ------------------------------------------------------------------ #
     # Chat loop (entity delegates the five protocol-specific steps)
     # ------------------------------------------------------------------ #

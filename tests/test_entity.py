@@ -139,3 +139,26 @@ async def test_handle_chat_log_maps_provider_auth_error(
 
     assert exc_info.value.translation_key == "api_authentication_error"
     coordinator.async_request_refresh.assert_awaited_once()
+
+
+async def test_base_entity_uses_provider_default_model(
+    hass: HomeAssistant,
+    mock_config_entry: MagicMock,
+    mock_subentry_conversation: ConfigSubentry,
+) -> None:
+    """An OpenAI entry with no stored model + empty model list falls back to the
+    provider's own default model (gpt-4o-mini), not a Claude id."""
+    from custom_components.configurable_llm.providers import OpenAIChatProvider
+
+    coordinator = MagicMock()
+    coordinator.provider = OpenAIChatProvider()
+    # Empty model list + get_default_model returns the fallback it is handed,
+    # so this verifies the entity passes the *provider's* default as fallback.
+    coordinator.get_default_model = lambda fallback: fallback
+    coordinator.get_model_info = lambda mid: (MagicMock(id=mid), False)
+    mock_subentry_conversation.data = {}  # recommended mode: no stored model
+    mock_config_entry.runtime_data = coordinator
+
+    entity = ConfigurableLLMBaseEntity(mock_config_entry, mock_subentry_conversation)
+
+    assert entity.model_info.id == "gpt-4o-mini"

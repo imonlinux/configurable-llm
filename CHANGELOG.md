@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Provider defaults are now authoritative per protocol** — the base entity no longer merges the Anthropic `DEFAULT` for every protocol, nor falls back to a Claude model id on OpenAI entries. Each provider exposes a `defaults()` method (Anthropic → `DEFAULT`, OpenAI → `DEFAULT_OPENAI`), so an OpenAI recommended-mode subentry now correctly gets `gpt-4o-mini` / temperature / top P / reasoning-effort defaults, and an OpenAI entry with an empty `/v1/models` no longer hands the endpoint a Claude id (which would `400`). Removes the last cross-protocol constant coupling from the entity. (Code review items 1 & 2.)
+
+### Changed
+
+- Documented that OpenAI-hosted reasoning models (o-series, gpt-5) are unsupported on this rail — they reject `max_tokens` and non-default temperature. Use chat models (e.g. `gpt-4o-mini`) or compatible/local servers. (Code review item 3.)
+- Clarified that the OpenAI stream transformer's `output_tool` parameter is intentionally unused (structured output is native via `response_format`). (Code review item 5.)
+
 ## 1.2.0-beta.1
 
 Pre-release: provider-pluggable architecture with OpenAI Chat Completions support. Stable 1.2.0 will follow after testing.

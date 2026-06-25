@@ -42,6 +42,7 @@ from ..const import (
     CONF_REASONING_EFFORT,
     CONF_TEMPERATURE,
     CONF_TOP_P,
+    DEFAULT_OPENAI,
     DOMAIN,
     LOGGER,
 )
@@ -169,6 +170,10 @@ async def _transform_stream(  # noqa: C901
     (keyed by ``index``); they are accumulated and flushed as a single
     ``tool_calls`` delta when the stream signals completion. The transformer
     tolerates servers that omit ``delta.role`` or ``finish_reason``.
+
+    ``output_tool`` is required by the ``make_transformer`` interface contract
+    but unused here: structured output is handled natively via ``response_format``
+    (see ``build_request``), so there is no forced-tool delta to extract.
     """
     tool_buffers: dict[int, dict[str, str]] = {}
     last_role: str | None = None
@@ -323,6 +328,10 @@ class OpenAIChatProvider(LLMProvider):
                 translation_placeholders={"message": message},
             ) from err
         return [self.normalize_model(model) for model in result.data]
+
+    def defaults(self) -> dict[str, Any]:
+        """OpenAI Chat Completions default options."""
+        return DEFAULT_OPENAI
 
     async def fetch_model(
         self, coordinator: ConfigurableLLMCoordinator, model_id: str
