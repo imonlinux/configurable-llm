@@ -2,7 +2,9 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## 1.2.0-beta.2
+
+Pre-release: code-review follow-up to 1.2.0-beta.1.
 
 ### Fixed
 
