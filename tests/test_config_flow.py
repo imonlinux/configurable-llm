@@ -255,24 +255,30 @@ async def test_flow_step_reauth_validates_against_entry_endpoint(
 
     flow = ConfigurableLLMConfigFlow()
     flow.hass = hass
-    # Bypass property descriptor to set source directly on instance
-    object.__setattr__(flow, "source", SOURCE_REAUTH)
     flow.context = {
         "entry_id": mock_config_entry.entry_id,
     }
 
-    # Patch validate_input to avoid network calls; verify it gets called
-    # with the entry's protocol/base_url preserved (no preset overwrite)
-    # Patch _get_reauth_entry to return mock entry
-    # Patch async_update_reload_and_abort to avoid UnknownEntry (entry not registered)
-    with patch("custom_components.configurable_llm.config_flow.validate_input") as mock_validate, patch(
-        "custom_components.configurable_llm.config_flow.ConfigurableLLMConfigFlow._get_reauth_entry",
-        return_value=mock_config_entry,
-    ), patch(
-        "custom_components.configurable_llm.config_flow.ConfigFlow.async_update_reload_and_abort",
-        return_value={"type": FlowResultType.ABORT, "reason": "reauth_successful"},
-    ):
-        result = await flow.async_step_user({CONF_API_KEY: mock_api_key})
+    # Monkey-patch source property to return SOURCE_REAUTH for this instance
+    original_property = type(flow).source
+    type(flow).source = property(lambda self: SOURCE_REAUTH)
+
+    try:
+        # Patch validate_input to avoid network calls; verify it gets called
+        # with the entry's protocol/base_url preserved (no preset overwrite)
+        # Patch _get_reauth_entry to return mock entry
+        # Patch async_update_reload_and_abort to avoid UnknownEntry (entry not registered)
+        with patch("custom_components.configurable_llm.config_flow.validate_input") as mock_validate, patch(
+            "custom_components.configurable_llm.config_flow.ConfigurableLLMConfigFlow._get_reauth_entry",
+            return_value=mock_config_entry,
+        ), patch(
+            "custom_components.configurable_llm.config_flow.ConfigFlow.async_update_reload_and_abort",
+            return_value={"type": FlowResultType.ABORT, "reason": "reauth_successful"},
+        ):
+            result = await flow.async_step_user({CONF_API_KEY: mock_api_key})
+    finally:
+        # Restore original property
+        type(flow).source = original_property
 
     # Validate input should be called with entry's protocol/base_url merged in
     mock_validate.assert_called_once()
@@ -306,20 +312,26 @@ async def test_flow_step_reauth_error_returns_reauth_confirm_form(
 
     flow = ConfigurableLLMConfigFlow()
     flow.hass = hass
-    # Bypass property descriptor to set source directly on instance
-    object.__setattr__(flow, "source", SOURCE_REAUTH)
     flow.context = {
         "entry_id": mock_config_entry.entry_id,
     }
 
-    with patch(
-        "custom_components.configurable_llm.config_flow.validate_input",
-        side_effect=ConfigEntryAuthFailed("Bad credentials"),
-    ), patch(
-        "custom_components.configurable_llm.config_flow.ConfigurableLLMConfigFlow._get_reauth_entry",
-        return_value=mock_config_entry,
-    ):
-        result = await flow.async_step_user({CONF_API_KEY: "bad-key"})
+    # Monkey-patch source property to return SOURCE_REAUTH for this instance
+    original_property = type(flow).source
+    type(flow).source = property(lambda self: SOURCE_REAUTH)
+
+    try:
+        with patch(
+            "custom_components.configurable_llm.config_flow.validate_input",
+            side_effect=ConfigEntryAuthFailed("Bad credentials"),
+        ), patch(
+            "custom_components.configurable_llm.config_flow.ConfigurableLLMConfigFlow._get_reauth_entry",
+            return_value=mock_config_entry,
+        ):
+            result = await flow.async_step_user({CONF_API_KEY: "bad-key"})
+    finally:
+        # Restore original property
+        type(flow).source = original_property
 
     # Error should return reauth_confirm form, not user form
     assert result["type"] == FlowResultType.FORM
