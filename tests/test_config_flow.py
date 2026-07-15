@@ -255,17 +255,17 @@ async def test_flow_step_reauth_validates_against_entry_endpoint(
 
     flow = ConfigurableLLMConfigFlow()
     flow.hass = hass
+    # Bypass property descriptor to set source directly on instance
+    object.__setattr__(flow, "source", SOURCE_REAUTH)
     flow.context = {
         "entry_id": mock_config_entry.entry_id,
     }
 
     # Patch validate_input to avoid network calls; verify it gets called
     # with the entry's protocol/base_url preserved (no preset overwrite)
-    # Mock source to simulate reauth and patch _get_reauth_entry to return mock entry
+    # Patch _get_reauth_entry to return mock entry
     # Patch async_update_reload_and_abort to avoid UnknownEntry (entry not registered)
-    with patch.object(type(flow), "source", SOURCE_REAUTH), patch(
-        "custom_components.configurable_llm.config_flow.validate_input"
-    ) as mock_validate, patch(
+    with patch("custom_components.configurable_llm.config_flow.validate_input") as mock_validate, patch(
         "custom_components.configurable_llm.config_flow.ConfigurableLLMConfigFlow._get_reauth_entry",
         return_value=mock_config_entry,
     ), patch(
@@ -306,11 +306,13 @@ async def test_flow_step_reauth_error_returns_reauth_confirm_form(
 
     flow = ConfigurableLLMConfigFlow()
     flow.hass = hass
+    # Bypass property descriptor to set source directly on instance
+    object.__setattr__(flow, "source", SOURCE_REAUTH)
     flow.context = {
         "entry_id": mock_config_entry.entry_id,
     }
 
-    with patch.object(type(flow), "source", SOURCE_REAUTH), patch(
+    with patch(
         "custom_components.configurable_llm.config_flow.validate_input",
         side_effect=ConfigEntryAuthFailed("Bad credentials"),
     ), patch(
