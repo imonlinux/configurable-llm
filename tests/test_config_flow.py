@@ -261,16 +261,16 @@ async def test_flow_step_reauth_validates_against_entry_endpoint(
 
     # Patch validate_input to avoid network calls; verify it gets called
     # with the entry's protocol/base_url preserved (no preset overwrite)
+    # Mock source to simulate reauth and patch _get_reauth_entry to return mock entry
     # Patch async_update_reload_and_abort to avoid UnknownEntry (entry not registered)
-    # Patch source property to simulate reauth flow (read-only property)
-    with patch(
-        "homeassistant.config_entries.ConfigEntries.async_get_entry",
+    with patch.object(type(flow), "source", SOURCE_REAUTH), patch(
+        "custom_components.configurable_llm.config_flow.validate_input"
+    ) as mock_validate, patch(
+        "custom_components.configurable_llm.config_flow.ConfigurableLLMConfigFlow._get_reauth_entry",
         return_value=mock_config_entry,
-    ), patch("custom_components.configurable_llm.config_flow.validate_input") as mock_validate, patch(
+    ), patch(
         "custom_components.configurable_llm.config_flow.ConfigFlow.async_update_reload_and_abort",
         return_value={"type": FlowResultType.ABORT, "reason": "reauth_successful"},
-    ), patch.object(
-        ConfigurableLLMConfigFlow, "source", new_callable=PropertyMock, return_value=SOURCE_REAUTH
     ):
         result = await flow.async_step_user({CONF_API_KEY: mock_api_key})
 
@@ -310,14 +310,12 @@ async def test_flow_step_reauth_error_returns_reauth_confirm_form(
         "entry_id": mock_config_entry.entry_id,
     }
 
-    with patch(
-        "homeassistant.config_entries.ConfigEntries.async_get_entry",
-        return_value=mock_config_entry,
-    ), patch(
+    with patch.object(type(flow), "source", SOURCE_REAUTH), patch(
         "custom_components.configurable_llm.config_flow.validate_input",
         side_effect=ConfigEntryAuthFailed("Bad credentials"),
-    ), patch.object(
-        ConfigurableLLMConfigFlow, "source", new_callable=PropertyMock, return_value=SOURCE_REAUTH
+    ), patch(
+        "custom_components.configurable_llm.config_flow.ConfigurableLLMConfigFlow._get_reauth_entry",
+        return_value=mock_config_entry,
     ):
         result = await flow.async_step_user({CONF_API_KEY: "bad-key"})
 
