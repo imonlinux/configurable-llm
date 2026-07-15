@@ -268,15 +268,25 @@ async def test_flow_step_reauth_validates_against_entry_endpoint(
         # Patch validate_input to avoid network calls; verify it gets called
         # with the entry's protocol/base_url preserved (no preset overwrite)
         # Patch async_update_reload_and_abort to avoid UnknownEntry (entry not registered)
-        with patch("custom_components.configurable_llm.config_flow.validate_input") as mock_validate, patch(
-            "custom_components.configurable_llm.config_flow.ConfigFlow.async_update_reload_and_abort",
+        validated: list[dict] = []
+
+        async def _capture_validate(hass_, data):
+            # Snapshot a copy: mock call_args holds a reference, and the flow
+            # pops protocol/base_url from this same dict after validation.
+            validated.append(dict(data))
+
+        with patch(
+            "custom_components.configurable_llm.config_flow.validate_input",
+            new=_capture_validate,
+        ), patch(
+            "custom_components.config_entries.ConfigFlow.async_update_reload_and_abort",
             return_value={"type": FlowResultType.ABORT, "reason": "reauth_successful"},
         ):
             result = await flow.async_step_user({CONF_API_KEY: mock_api_key})
 
     # Validate input was called with entry's protocol/base_url merged in
-    mock_validate.assert_called_once()
-    call_args = mock_validate.call_args.args[1]
+    assert len(validated) == 1
+    call_args = validated[0]
     assert call_args[CONF_PROTOCOL] == PROTOCOL_OPENAI
     assert call_args[CONF_BASE_URL] == "http://localhost:11434/v1"
     assert call_args[CONF_API_KEY] == mock_api_key
