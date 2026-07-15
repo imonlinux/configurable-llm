@@ -264,7 +264,7 @@ async def test_flow_step_reauth_validates_against_entry_endpoint(
         return_value=mock_config_entry,
     ), patch("custom_components.configurable_llm.config_flow.validate_input") as mock_validate, patch(
         "custom_components.configurable_llm.config_flow.ConfigFlow.async_update_reload_and_abort",
-        return_value={"type": FlowResultType.UPDATE_AND_RELOAD},
+        return_value={"type": FlowResultType.ABORT, "reason": "reauth_successful"},
     ):
         result = await flow.async_step_user({CONF_API_KEY: mock_api_key})
 
@@ -277,8 +277,9 @@ async def test_flow_step_reauth_validates_against_entry_endpoint(
     # No preset in the validated data (entry values are authoritative)
     assert CONF_PRESET not in call_args
 
-    # On successful validation, the entry is updated
-    assert result["type"] == FlowResultType.UPDATE_AND_RELOAD
+    # On successful validation, the entry is updated and flow aborts
+    assert result["type"] == FlowResultType.ABORT
+    assert result["reason"] == "reauth_successful"
 
 
 async def test_flow_step_reauth_error_returns_reauth_confirm_form(
