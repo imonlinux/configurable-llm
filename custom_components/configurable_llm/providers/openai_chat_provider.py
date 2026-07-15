@@ -38,6 +38,7 @@ from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import slugify
 
 from ..const import (
+    CONF_CHAT_MODEL,
     CONF_MAX_TOKENS,
     CONF_REASONING_EFFORT,
     CONF_TEMPERATURE,

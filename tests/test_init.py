@@ -153,8 +153,10 @@ async def test_async_migrate_entry_v2_noop(
         "api_key": "sk-ant-test1234",
         CONF_PROTOCOL: PROTOCOL_ANTHROPIC,
     }
+    async_update_entry = MagicMock()
+    hass.config_entries.async_update_entry = async_update_entry
 
     result = await async_migrate_entry(hass, mock_config_entry)
 
     assert result is True
-    hass.config_entries.async_update_entry.assert_not_called()
+    async_update_entry.assert_not_called()

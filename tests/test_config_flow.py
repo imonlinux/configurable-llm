@@ -235,7 +235,6 @@ async def test_flow_step_reauth_validates_against_entry_endpoint(
     hass: HomeAssistant,
     mock_config_entry: ConfigEntry,
     mock_api_key: str,
-    mock_anthropic_client: MagicMock,
 ) -> None:
     """Regression test for HIGH-3: reauth validates against entry's endpoint.
 
@@ -257,17 +256,22 @@ async def test_flow_step_reauth_validates_against_entry_endpoint(
         "source": "reauth",
     }
 
-    # Mock the existing entry to be returned
+    # Patch validate_input to avoid network calls; verify it gets called
+    # with the entry's protocol/base_url preserved (no preset overwrite)
     with patch(
         "homeassistant.config_entries.ConfigEntries.async_get_entry",
         return_value=mock_config_entry,
-    ):
-        # User submits new API key via reauth_confirm
+    ), patch("custom_components.configurable_llm.config_flow.validate_input") as mock_validate:
         result = await flow.async_step_user({CONF_API_KEY: mock_api_key})
 
-    # Validation should have run with the entry's protocol/base_url merged in
-    # (Not against api.anthropic.com, which would fail)
-    mock_anthropic_client.models.list.assert_called_once()
+    # Validate input should be called with entry's protocol/base_url merged in
+    mock_validate.assert_called_once()
+    call_args = mock_validate.call_args.args[1]
+    assert call_args[CONF_PROTOCOL] == PROTOCOL_OPENAI
+    assert call_args[CONF_BASE_URL] == "http://localhost:11434/v1"
+    assert call_args[CONF_API_KEY] == mock_api_key
+    # No preset in the validated data (entry values are authoritative)
+    assert CONF_PRESET not in call_args
 
     # On successful validation, the entry is updated
     assert result["type"] == FlowResultType.UPDATE_AND_RELOAD
@@ -300,21 +304,9 @@ async def test_flow_step_reauth_error_returns_reauth_confirm_form(
         "homeassistant.config_entries.ConfigEntries.async_get_entry",
         return_value=mock_config_entry,
     ), patch(
-        "custom_components.configurable_llm.config_flow.anthropic.AsyncAnthropic"
-    ) as mock_anthropic:
-        # Simulate auth error on validation
-        mock_client = MagicMock()
-        mock_client.models.list = AsyncMock(
-            side_effect=anthropic.APIStatusError(
-                "Unauthorized",
-                response=httpx.Response(
-                    401, request=httpx.Request("GET", "http://localhost:11434/v1")
-                ),
-                body={"error": {"type": "authentication_error"}},
-            )
-        )
-        mock_anthropic.return_value = mock_client
-
+        "custom_components.configurable_llm.config_flow.validate_input",
+        side_effect=ConfigEntryAuthFailed("Bad credentials"),
+    ):
         result = await flow.async_step_user({CONF_API_KEY: "bad-key"})
 
     # Error should return reauth_confirm form, not user form
