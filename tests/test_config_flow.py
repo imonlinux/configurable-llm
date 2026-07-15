@@ -259,9 +259,10 @@ async def test_flow_step_reauth_validates_against_entry_endpoint(
         "entry_id": mock_config_entry.entry_id,
     }
 
-    # Monkey-patch source property to return SOURCE_REAUTH for this instance
-    original_property = type(flow).source
-    type(flow).source = property(lambda self: SOURCE_REAUTH)
+    # Monkey-patch source property at ConfigFlow base class to return SOURCE_REAUTH
+    from homeassistant.config_entries import ConfigFlow
+    original_property = ConfigFlow.source
+    ConfigFlow.source = property(lambda self: SOURCE_REAUTH)
 
     try:
         # Patch validate_input to avoid network calls; verify it gets called
@@ -278,7 +279,7 @@ async def test_flow_step_reauth_validates_against_entry_endpoint(
             result = await flow.async_step_user({CONF_API_KEY: mock_api_key})
     finally:
         # Restore original property
-        type(flow).source = original_property
+        ConfigFlow.source = original_property
 
     # Validate input should be called with entry's protocol/base_url merged in
     mock_validate.assert_called_once()
@@ -316,9 +317,10 @@ async def test_flow_step_reauth_error_returns_reauth_confirm_form(
         "entry_id": mock_config_entry.entry_id,
     }
 
-    # Monkey-patch source property to return SOURCE_REAUTH for this instance
-    original_property = type(flow).source
-    type(flow).source = property(lambda self: SOURCE_REAUTH)
+    # Monkey-patch source property at ConfigFlow base class to return SOURCE_REAUTH
+    from homeassistant.config_entries import ConfigFlow
+    original_property = ConfigFlow.source
+    ConfigFlow.source = property(lambda self: SOURCE_REAUTH)
 
     try:
         with patch(
@@ -331,7 +333,7 @@ async def test_flow_step_reauth_error_returns_reauth_confirm_form(
             result = await flow.async_step_user({CONF_API_KEY: "bad-key"})
     finally:
         # Restore original property
-        type(flow).source = original_property
+        ConfigFlow.source = original_property
 
     # Error should return reauth_confirm form, not user form
     assert result["type"] == FlowResultType.FORM
