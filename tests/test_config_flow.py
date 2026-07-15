@@ -274,8 +274,14 @@ async def test_flow_step_reauth_validates_against_entry_endpoint(
         ):
             result = await flow.async_step_user({CONF_API_KEY: mock_api_key})
 
-    # Validate input was called (exact arguments checked by production code)
+    # Validate input was called with entry's protocol/base_url merged in
     mock_validate.assert_called_once()
+    call_args = mock_validate.call_args.args[1]
+    assert call_args[CONF_PROTOCOL] == PROTOCOL_OPENAI
+    assert call_args[CONF_BASE_URL] == "http://localhost:11434/v1"
+    assert call_args[CONF_API_KEY] == mock_api_key
+    # No preset in the validated data (entry values are authoritative)
+    assert CONF_PRESET not in call_args
 
     # On successful validation, the entry is updated and flow aborts
     assert result["type"] == FlowResultType.ABORT
