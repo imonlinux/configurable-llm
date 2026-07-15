@@ -6,7 +6,11 @@ from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 import anthropic
 import httpx
 import pytest
-from homeassistant.config_entries import ConfigEntry, ConfigEntryState
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigEntryState,
+    SOURCE_REAUTH,
+)
 from homeassistant.const import CONF_API_KEY, CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -251,9 +255,9 @@ async def test_flow_step_reauth_validates_against_entry_endpoint(
 
     flow = ConfigurableLLMConfigFlow()
     flow.hass = hass
+    flow.source = SOURCE_REAUTH
     flow.context = {
         "entry_id": mock_config_entry.entry_id,
-        "source": "reauth",
     }
 
     # Patch validate_input to avoid network calls; verify it gets called
@@ -300,9 +304,9 @@ async def test_flow_step_reauth_error_returns_reauth_confirm_form(
 
     flow = ConfigurableLLMConfigFlow()
     flow.hass = hass
+    flow.source = SOURCE_REAUTH
     flow.context = {
         "entry_id": mock_config_entry.entry_id,
-        "source": "reauth",
     }
 
     with patch(
