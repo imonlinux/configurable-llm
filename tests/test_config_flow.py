@@ -9,6 +9,7 @@ import pytest
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigEntryState,
+    ConfigFlow,
     SOURCE_REAUTH,
 )
 from homeassistant.const import CONF_API_KEY, CONF_NAME
@@ -260,7 +261,6 @@ async def test_flow_step_reauth_validates_against_entry_endpoint(
     }
 
     # Monkey-patch source property at ConfigFlow base class to return SOURCE_REAUTH
-    from homeassistant.config_entries import ConfigFlow
     original_property = ConfigFlow.source
     ConfigFlow.source = property(lambda self: SOURCE_REAUTH)
 
@@ -318,7 +318,6 @@ async def test_flow_step_reauth_error_returns_reauth_confirm_form(
     }
 
     # Monkey-patch source property at ConfigFlow base class to return SOURCE_REAUTH
-    from homeassistant.config_entries import ConfigFlow
     original_property = ConfigFlow.source
     ConfigFlow.source = property(lambda self: SOURCE_REAUTH)
 
