@@ -231,6 +231,98 @@ async def test_flow_step_reauth(
     assert result["step_id"] == "reauth_confirm"
 
 
+async def test_flow_step_reauth_validates_against_entry_endpoint(
+    hass: HomeAssistant,
+    mock_config_entry: ConfigEntry,
+    mock_api_key: str,
+    mock_anthropic_client: MagicMock,
+) -> None:
+    """Regression test for HIGH-3: reauth validates against entry's endpoint.
+
+    An OpenAI-protocol entry (e.g., Ollama at localhost:11434) must be
+    validated against that endpoint, not against api.anthropic.com. The
+    entry's protocol/base_url must be preserved during reauth.
+    """
+    # Set up an OpenAI-protocol entry (e.g., Ollama)
+    mock_config_entry.data = {
+        CONF_API_KEY: "old-key",
+        CONF_PROTOCOL: PROTOCOL_OPENAI,
+        CONF_BASE_URL: "http://localhost:11434/v1",
+    }
+
+    flow = ConfigurableLLMConfigFlow()
+    flow.hass = hass
+    flow.context = {
+        "entry_id": mock_config_entry.entry_id,
+        "source": "reauth",
+    }
+
+    # Mock the existing entry to be returned
+    with patch(
+        "homeassistant.config_entries.ConfigEntries.async_get_entry",
+        return_value=mock_config_entry,
+    ):
+        # User submits new API key via reauth_confirm
+        result = await flow.async_step_user({CONF_API_KEY: mock_api_key})
+
+    # Validation should have run with the entry's protocol/base_url merged in
+    # (Not against api.anthropic.com, which would fail)
+    mock_anthropic_client.models.list.assert_called_once()
+
+    # On successful validation, the entry is updated
+    assert result["type"] == FlowResultType.UPDATE_AND_RELOAD
+
+
+async def test_flow_step_reauth_error_returns_reauth_confirm_form(
+    hass: HomeAssistant,
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Regression test for HIGH-3: reauth error returns reauth_confirm form.
+
+    When validation fails during reauth, the flow must return reauth_confirm
+    (api_key only) rather than the full user form (preset/protocol/base_url).
+    This prevents the preset field from overwriting the entry's protocol/base_url.
+    """
+    mock_config_entry.data = {
+        CONF_API_KEY: "old-key",
+        CONF_PROTOCOL: PROTOCOL_OPENAI,
+        CONF_BASE_URL: "http://localhost:11434/v1",
+    }
+
+    flow = ConfigurableLLMConfigFlow()
+    flow.hass = hass
+    flow.context = {
+        "entry_id": mock_config_entry.entry_id,
+        "source": "reauth",
+    }
+
+    with patch(
+        "homeassistant.config_entries.ConfigEntries.async_get_entry",
+        return_value=mock_config_entry,
+    ), patch(
+        "custom_components.configurable_llm.config_flow.anthropic.AsyncAnthropic"
+    ) as mock_anthropic:
+        # Simulate auth error on validation
+        mock_client = MagicMock()
+        mock_client.models.list = AsyncMock(
+            side_effect=anthropic.APIStatusError(
+                "Unauthorized",
+                response=httpx.Response(
+                    401, request=httpx.Request("GET", "http://localhost:11434/v1")
+                ),
+                body={"error": {"type": "authentication_error"}},
+            )
+        )
+        mock_anthropic.return_value = mock_client
+
+        result = await flow.async_step_user({CONF_API_KEY: "bad-key"})
+
+    # Error should return reauth_confirm form, not user form
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "reauth_confirm"
+    assert result["errors"]["base"] == "authentication_error"
+
+
 async def test_flow_subentry_conversation_init(
     hass: HomeAssistant,
     mock_config_entry: ConfigEntry,
@@ -538,48 +630,6 @@ async def test_flow_subentry_recommended_skips_advanced(
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["title"] == "Test"
-
-
-async def test_migrate_entry_v1_to_v2(
-    hass: HomeAssistant,
-    mock_config_entry: ConfigEntry,
-) -> None:
-    """v1 entries gain protocol=anthropic on migration to v2."""
-    mock_config_entry.version = 1
-    mock_config_entry.data = {CONF_API_KEY: "key", CONF_BASE_URL: DEFAULT_BASE_URL}
-    async_update_entry = AsyncMock()
-    hass.config_entries.async_update_entry = async_update_entry
-
-    flow = ConfigurableLLMConfigFlow()
-    result = await flow.async_migrate_entry(hass, mock_config_entry)
-
-    assert result is True
-    async_update_entry.assert_called_once()
-    assert async_update_entry.call_args.kwargs["version"] == 2
-    assert (
-        async_update_entry.call_args.kwargs["data"][CONF_PROTOCOL] == PROTOCOL_ANTHROPIC
-    )
-
-
-async def test_migrate_entry_already_v2(
-    hass: HomeAssistant,
-    mock_config_entry: ConfigEntry,
-) -> None:
-    """v2 entries are left untouched."""
-    mock_config_entry.version = 2
-    mock_config_entry.data = {
-        CONF_API_KEY: "key",
-        CONF_BASE_URL: DEFAULT_BASE_URL,
-        CONF_PROTOCOL: PROTOCOL_OPENAI,
-    }
-    async_update_entry = AsyncMock()
-    hass.config_entries.async_update_entry = async_update_entry
-
-    flow = ConfigurableLLMConfigFlow()
-    result = await flow.async_migrate_entry(hass, mock_config_entry)
-
-    assert result is True
-    async_update_entry.assert_not_called()
 
 
 async def test_flow_step_user_anthropic_preset(

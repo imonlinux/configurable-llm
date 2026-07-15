@@ -161,6 +161,42 @@ async def test_transform_stream_text(hass: HomeAssistant) -> None:
     assert traced["stats"]["output_tokens"] == 2
 
 
+async def test_transform_stream_usage_on_content_chunks(
+    hass: HomeAssistant,
+) -> None:
+    """Regression test for HIGH-2: usage attached to content chunks is processed.
+
+    Some servers (vLLM with continuous_usage_stats, LiteLLM proxies) attach
+    usage stats to content-bearing chunks, not just a final usage-only chunk.
+    The transformer must process content when usage is present, not skip it.
+    """
+    chat_log = MagicMock(spec=conversation.ChatLog)
+
+    # Helper to create a chunk with both usage and content
+    def _content_with_usage(content: str, prompt_tokens: int, completion_tokens: int) -> Any:
+        usage = SimpleNamespace(
+            prompt_tokens=prompt_tokens, completion_tokens=completion_tokens
+        )
+        delta = SimpleNamespace(role="assistant", content=content)
+        choice = SimpleNamespace(delta=delta, finish_reason=None)
+        return SimpleNamespace(usage=usage, choices=[choice])
+
+    chunks = [
+        _content_with_usage("Hello", 3, 1),
+        _content_with_usage(" world", 4, 1),
+        _delta_chunk(finish_reason="stop"),
+    ]
+
+    deltas = [d async for d in _transform_stream(chat_log, _aiter(chunks), output_tool=None)]
+
+    # Content must be preserved even when usage is on same chunk
+    assert {"role": "assistant"} in deltas
+    assert {"content": "Hello"} in deltas
+    assert {"content": " world"} in deltas
+    # Both chunks traced usage (last trace wins)
+    assert chat_log.async_trace.call_count >= 1
+
+
 async def test_transform_stream_tool_calls_accumulate_and_flush(
     hass: HomeAssistant,
 ) -> None:
@@ -459,3 +495,67 @@ def test_defaults() -> None:
     """OpenAI exposes its DEFAULT_OPENAI option dict via the provider interface."""
     assert provider.defaults() == DEFAULT_OPENAI
     assert provider.defaults()[CONF_CHAT_MODEL] == "gpt-4o-mini"
+
+
+def test_get_default_model_prefers_known_chat_model(
+    hass: HomeAssistant,
+) -> None:
+    """Regression test for MEDIUM-4: prefer gpt-4o-mini when present in list.
+
+    For hosted OpenAI endpoints with large, arbitrarily-ordered model lists,
+    returning models[0] can select non-chat models (e.g., gpt-4o-realtime-preview).
+    The provider must prefer its known good default when available.
+    """
+    from anthropic.types import ModelInfo
+    from datetime import UTC, datetime
+
+    # Simulate OpenAI-proper's arbitrary ordering where a non-chat model is first
+    models = [
+        ModelInfo(
+            type="model",
+            id="gpt-4o-realtime-preview",  # Not a chat model
+            display_name="GPT-4o Realtime Preview",
+            created_at=datetime(2024, 1, 1, tzinfo=UTC),
+        ),
+        ModelInfo(
+            type="model",
+            id="gpt-4o-mini",  # Our known good default
+            display_name="GPT-4o Mini",
+            created_at=datetime(2024, 1, 1, tzinfo=UTC),
+        ),
+    ]
+
+    # When gpt-4o-mini is in the list, prefer it
+    result = provider.get_default_model(models, "fallback")
+    assert result == "gpt-4o-mini"
+
+
+def test_get_default_model_fallback_to_first(
+    hass: HomeAssistant,
+) -> None:
+    """When known default is absent, fall back to models[0] for local servers.
+
+    Single-model local servers (Ollama-style) need models[0] behavior.
+    """
+    from anthropic.types import ModelInfo
+    from datetime import UTC, datetime
+
+    models = [
+        ModelInfo(
+            type="model",
+            id="llama-3.2-3b",  # gpt-4o-mini not in this list
+            display_name="Llama 3.2 3B",
+            created_at=datetime(2024, 1, 1, tzinfo=UTC),
+        ),
+    ]
+
+    result = provider.get_default_model(models, "fallback")
+    assert result == "llama-3.2-3b"
+
+
+def test_get_default_model_empty_list_returns_fallback(
+    hass: HomeAssistant,
+) -> None:
+    """When model list is empty, return the fallback."""
+    result = provider.get_default_model(None, "fallback")
+    assert result == "fallback"
