@@ -337,6 +337,73 @@ async def test_flow_step_reauth_error_returns_reauth_confirm_form(
     assert result["errors"]["base"] == "authentication_error"
 
 
+async def test_flow_step_reauth_retry_validates_against_entry_endpoint(
+    hass: HomeAssistant,
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Regression test for HIGH-3 (both defects, full scenario).
+
+    An OpenAI-protocol entry (e.g., Ollama) is reauthenticated; the first
+    attempt fails validation. The retry must (a) come from the reauth_confirm
+    form and (b) validate against the ENTRY's protocol/base_url — not a
+    preset default — with no preset key present. On beta.2 the retry
+    validated against api.anthropic.com and falsely succeeded.
+    """
+    mock_config_entry.data = {
+        CONF_API_KEY: "old-key",
+        CONF_PROTOCOL: PROTOCOL_OPENAI,
+        CONF_BASE_URL: "http://localhost:11434/v1",
+    }
+
+    validated: list[dict] = []
+
+    async def fake_validate(hass_, data):
+        validated.append(dict(data))
+        if len(validated) == 1:
+            raise ConfigEntryAuthFailed("Bad credentials")
+
+    with patch.object(
+        ConfigFlow, "source", new_callable=PropertyMock, return_value=SOURCE_REAUTH
+    ), patch(
+        "custom_components.configurable_llm.config_flow."
+        "ConfigurableLLMConfigFlow._get_reauth_entry",
+        return_value=mock_config_entry,
+    ):
+        flow = ConfigurableLLMConfigFlow()
+        flow.hass = hass
+        flow.context = {"entry_id": mock_config_entry.entry_id}
+
+        with patch(
+            "custom_components.configurable_llm.config_flow.validate_input",
+            new=fake_validate,
+        ), patch(
+            "custom_components.configurable_llm.config_flow."
+            "ConfigFlow.async_update_reload_and_abort",
+            return_value={
+                "type": FlowResultType.ABORT,
+                "reason": "reauth_successful",
+            },
+        ):
+            # Attempt 1: fails validation, must re-show reauth_confirm
+            result1 = await flow.async_step_user({CONF_API_KEY: "new-key"})
+            assert result1["type"] == FlowResultType.FORM
+            assert result1["step_id"] == "reauth_confirm"
+
+            # Attempt 2: retry from the reauth_confirm form (api_key only)
+            result2 = await flow.async_step_user({CONF_API_KEY: "new-key"})
+
+    # Both attempts must have validated against the entry's own endpoint.
+    assert len(validated) == 2
+    for call in validated:
+        assert call[CONF_PROTOCOL] == PROTOCOL_OPENAI
+        assert call[CONF_BASE_URL] == "http://localhost:11434/v1"
+        assert call[CONF_API_KEY] == "new-key"
+        assert CONF_PRESET not in call
+
+    assert result2["type"] == FlowResultType.ABORT
+    assert result2["reason"] == "reauth_successful"
+
+
 async def test_flow_subentry_conversation_init(
     hass: HomeAssistant,
     mock_config_entry: ConfigEntry,
