@@ -181,8 +181,7 @@ async def _transform_stream(  # noqa: C901
     async for chunk in stream:
         LOGGER.debug("Received chunk: %s", chunk)
 
-        # The final chunk (when stream_options.include_usage is set) carries
-        # token usage and has no choices.
+        # Trace usage when present (some servers attach it to content chunks).
         usage = getattr(chunk, "usage", None)
         if usage is not None:
             input_tokens = getattr(usage, "prompt_tokens", 0) or 0
@@ -195,7 +194,6 @@ async def _transform_stream(  # noqa: C901
                     }
                 }
             )
-            continue
 
         choices = getattr(chunk, "choices", None)
         if not choices:
@@ -332,6 +330,23 @@ class OpenAIChatProvider(LLMProvider):
     def defaults(self) -> dict[str, Any]:
         """OpenAI Chat Completions default options."""
         return DEFAULT_OPENAI
+
+    def get_default_model(
+        self, models: list[ModelInfo] | None, fallback: str
+    ) -> str:
+        """Return a sensible default model id for this provider.
+
+        For hosted OpenAI endpoints with large model lists, prefer our known
+        good default (gpt-4o-mini) if present in the fetched list. For local
+        servers with few or arbitrary models, fall back to models[0].
+        """
+        if models:
+            preferred = DEFAULT_OPENAI[CONF_CHAT_MODEL]
+            model_ids = {model.id for model in models}
+            if preferred in model_ids:
+                return preferred
+            return models[0].id
+        return fallback
 
     async def fetch_model(
         self, coordinator: ConfigurableLLMCoordinator, model_id: str

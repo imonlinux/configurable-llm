@@ -5,7 +5,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv, issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
 
-from .const import CONF_CHAT_MODEL, DOMAIN, LOGGER
+from .const import CONF_CHAT_MODEL, CONF_PROTOCOL, DOMAIN, LOGGER, PROTOCOL_ANTHROPIC
 from .coordinator import (
     ConfigurableLLMConfigEntry,
     ConfigurableLLMCoordinator,
@@ -13,6 +13,20 @@ from .coordinator import (
 
 PLATFORMS = (Platform.AI_TASK, Platform.CONVERSATION)
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+
+async def async_migrate_entry(
+    hass: HomeAssistant, entry: ConfigurableLLMConfigEntry
+) -> bool:
+    """Migrate old config entries."""
+    if entry.version == 1:
+        # v1 entries predate the protocol selector; assume Anthropic.
+        hass.config_entries.async_update_entry(
+            entry,
+            data={**entry.data, CONF_PROTOCOL: PROTOCOL_ANTHROPIC},
+            version=2,
+        )
+    return True
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:

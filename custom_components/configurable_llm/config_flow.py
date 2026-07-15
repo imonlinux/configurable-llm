@@ -165,19 +165,6 @@ class ConfigurableLLMConfigFlow(ConfigFlow, domain=DOMAIN):
     VERSION = 2
     MINOR_VERSION = 1
 
-    async def async_migrate_entry(
-        self, hass: HomeAssistant, entry: "ConfigurableLLMConfigEntry"
-    ) -> bool:
-        """Migrate old config entries."""
-        if entry.version == 1:
-            # v1 entries predate the protocol selector; assume Anthropic.
-            await hass.config_entries.async_update_entry(
-                entry,
-                data={**entry.data, CONF_PROTOCOL: PROTOCOL_ANTHROPIC},
-                version=2,
-            )
-        return True
-
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -186,25 +173,27 @@ class ConfigurableLLMConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             # On reauth the existing entry already has base_url/protocol; merge
-            # them in so validation runs against the same endpoint.
+            # them in so validation runs against the same endpoint. Do NOT apply
+            # preset/protocol/base_url mutation in reauth — the entry's values
+            # are authoritative and we only accept a new api_key.
             if self.source == SOURCE_REAUTH:
                 user_input = {
                     **self._get_reauth_entry().data,
                     **user_input,
                 }
-
-            # A preset fills protocol + base_url; "custom" uses the explicit
-            # protocol selector and the typed base_url.
-            preset_value = user_input.get(CONF_PRESET) or PRESET_CUSTOM
-            preset = get_preset(preset_value)
-            if preset and preset_value != PRESET_CUSTOM:
-                user_input[CONF_PROTOCOL] = cast(str, preset["protocol"])
-                user_input[CONF_BASE_URL] = cast(str, preset["base_url"])
-            user_input.setdefault(CONF_PROTOCOL, DEFAULT_PROTOCOL)
-            if not user_input.get(CONF_BASE_URL):
-                user_input[CONF_BASE_URL] = get_provider(
-                    user_input[CONF_PROTOCOL]
-                ).default_base_url
+            else:
+                # A preset fills protocol + base_url; "custom" uses the explicit
+                # protocol selector and the typed base_url.
+                preset_value = user_input.get(CONF_PRESET) or PRESET_CUSTOM
+                preset = get_preset(preset_value)
+                if preset and preset_value != PRESET_CUSTOM:
+                    user_input[CONF_PROTOCOL] = cast(str, preset["protocol"])
+                    user_input[CONF_BASE_URL] = cast(str, preset["base_url"])
+                user_input.setdefault(CONF_PROTOCOL, DEFAULT_PROTOCOL)
+                if not user_input.get(CONF_BASE_URL):
+                    user_input[CONF_BASE_URL] = get_provider(
+                        user_input[CONF_PROTOCOL]
+                    ).default_base_url
 
             self._async_abort_entries_match({CONF_API_KEY: user_input[CONF_API_KEY]})
             try:
@@ -248,6 +237,15 @@ class ConfigurableLLMConfigFlow(ConfigFlow, domain=DOMAIN):
                     ],
                 )
 
+        # On validation error, re-show the appropriate form: reauth_confirm for
+        # reauth (only api_key), user for initial setup.
+        if self.source == SOURCE_REAUTH:
+            return self.async_show_form(
+                step_id="reauth_confirm",
+                data_schema=STEP_REAUTH_DATA_SCHEMA,
+                errors=errors or None,
+                description_placeholders={"name": self._get_reauth_entry().title},
+            )
         return self.async_show_form(
             step_id="user",
             data_schema=STEP_USER_DATA_SCHEMA,
