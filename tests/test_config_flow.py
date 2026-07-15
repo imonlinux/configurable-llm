@@ -255,7 +255,8 @@ async def test_flow_step_reauth_validates_against_entry_endpoint(
 
     flow = ConfigurableLLMConfigFlow()
     flow.hass = hass
-    flow.source = SOURCE_REAUTH
+    # Use PropertyMock to set the read-only source property
+    type(flow).source = PropertyMock(return_value=SOURCE_REAUTH)
     flow.context = {
         "entry_id": mock_config_entry.entry_id,
     }
@@ -304,7 +305,8 @@ async def test_flow_step_reauth_error_returns_reauth_confirm_form(
 
     flow = ConfigurableLLMConfigFlow()
     flow.hass = hass
-    flow.source = SOURCE_REAUTH
+    # Use PropertyMock to set the read-only source property
+    type(flow).source = PropertyMock(return_value=SOURCE_REAUTH)
     flow.context = {
         "entry_id": mock_config_entry.entry_id,
     }
