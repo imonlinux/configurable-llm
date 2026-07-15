@@ -270,7 +270,7 @@ async def test_flow_step_reauth_validates_against_entry_endpoint(
         "custom_components.configurable_llm.config_flow.ConfigFlow.async_update_reload_and_abort",
         return_value={"type": FlowResultType.ABORT, "reason": "reauth_successful"},
     ), patch.object(
-        type(flow), "source", PropertyMock(return_value=SOURCE_REAUTH)
+        ConfigurableLLMConfigFlow, "source", new_callable=PropertyMock, return_value=SOURCE_REAUTH
     ):
         result = await flow.async_step_user({CONF_API_KEY: mock_api_key})
 
@@ -317,7 +317,7 @@ async def test_flow_step_reauth_error_returns_reauth_confirm_form(
         "custom_components.configurable_llm.config_flow.validate_input",
         side_effect=ConfigEntryAuthFailed("Bad credentials"),
     ), patch.object(
-        type(flow), "source", PropertyMock(return_value=SOURCE_REAUTH)
+        ConfigurableLLMConfigFlow, "source", new_callable=PropertyMock, return_value=SOURCE_REAUTH
     ):
         result = await flow.async_step_user({CONF_API_KEY: "bad-key"})
 
