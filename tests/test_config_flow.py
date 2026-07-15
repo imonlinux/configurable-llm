@@ -258,10 +258,14 @@ async def test_flow_step_reauth_validates_against_entry_endpoint(
 
     # Patch validate_input to avoid network calls; verify it gets called
     # with the entry's protocol/base_url preserved (no preset overwrite)
+    # Patch async_update_reload_and_abort to avoid UnknownEntry (entry not registered)
     with patch(
         "homeassistant.config_entries.ConfigEntries.async_get_entry",
         return_value=mock_config_entry,
-    ), patch("custom_components.configurable_llm.config_flow.validate_input") as mock_validate:
+    ), patch("custom_components.configurable_llm.config_flow.validate_input") as mock_validate, patch(
+        "custom_components.configurable_llm.config_flow.ConfigFlow.async_update_reload_and_abort",
+        return_value={"type": FlowResultType.UPDATE_AND_RELOAD},
+    ):
         result = await flow.async_step_user({CONF_API_KEY: mock_api_key})
 
     # Validate input should be called with entry's protocol/base_url merged in
