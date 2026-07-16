@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.0-beta.3
+
+Pre-release: bug fixes for streaming, reauthentication, and provider defaults.
+
+### Fixed
+
+- **Usage metrics now included with streaming responses ending in usage-on-content chunks** — streaming responses that end with `usage-on-content` chunks now properly return `ChatCompletion.usage` metadata. Previously, usage was omitted for these responses.
+- **Provider get_default_model() override available** — the `Provider` base class now exposes a `get_default_model()` method that custom providers can override to specify their own default instead of using the Anthropic default.
+- **Reauthentication preserves entry endpoint** — during reauth, the entry's `protocol` and `base_url` are now preserved and used for validation instead of preset defaults. Retry after failed validation continues using the entry's endpoint; no preset key is introduced.
+- **Streaming chunk handling improved** — better handling of streaming responses with usage-on-content chunks for proper token accounting and response completion.
+
 ## 1.2.0-beta.2
 
 Pre-release: code-review follow-up to 1.2.0-beta.1.
