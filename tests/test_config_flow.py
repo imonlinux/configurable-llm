@@ -279,7 +279,7 @@ async def test_flow_step_reauth_validates_against_entry_endpoint(
             "custom_components.configurable_llm.config_flow.validate_input",
             new=_capture_validate,
         ), patch(
-            "custom_components.config_entries.ConfigFlow.async_update_reload_and_abort",
+            "custom_components.configurable_llm.config_flow.ConfigFlow.async_update_reload_and_abort",
             return_value={"type": FlowResultType.ABORT, "reason": "reauth_successful"},
         ):
             result = await flow.async_step_user({CONF_API_KEY: mock_api_key})
