@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.1.4
+
+### Changed
+
+- Updated `anthropic` dependency from 0.96.0 to 0.108.0 for Home Assistant 2026.8 compatibility
+- Added `openai==2.45.0` as a dependency (previously implicit via Home Assistant)
+
 ## 1.1.3
 
 ### Fixed
