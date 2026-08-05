@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.0-beta.4
+
+Pre-release: Home Assistant 2026.8 dependency compatibility update.
+
+### Changed
+
+- Updated `anthropic` dependency from 0.96.0 to 0.108.0 for Home Assistant 2026.8 compatibility
+- Updated `openai` dependency from 2.21.0 to 2.45.0 for Home Assistant 2026.8 compatibility
+
 ## 1.2.0-beta.3
 
 Pre-release: bug fixes for streaming, reauthentication, and provider defaults.
