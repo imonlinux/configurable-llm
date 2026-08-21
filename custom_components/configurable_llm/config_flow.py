@@ -488,29 +488,47 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
         )
 
     def _anthropic_model_schema(self) -> VolDictType:
-        """Build the Anthropic, capability-gated model-step schema."""
-        step_schema: VolDictType = {
+        """Build the Anthropic, capability-gated model-step schema with grouped options.
+
+        Options are organized into logical groups:
+        - Response Options: max_tokens, thinking_budget, thinking_effort
+        - Extended Thinking: code_execution
+        - Web Capabilities: web_search, web_search_max_uses, web_search_user_location,
+                          web_fetch, web_fetch_max_uses
+        - Tool Options: tool_search
+        """
+        step_schema: VolDictType = {}
+
+        # ===== Response Options =====
+        # Maximum tokens (response length limit)
+        step_schema[
             vol.Optional(
                 CONF_MAX_TOKENS,
                 default=DEFAULT[CONF_MAX_TOKENS],
-            ): vol.All(
+            )
+        ] = (
+            vol.All(
                 NumberSelector(
                     NumberSelectorConfig(min=0, max=self.model_info.max_tokens)
                 ),
                 vol.Coerce(int),
             )
             if self.model_info.max_tokens
-            else cv.positive_int,
-        }
+            else cv.positive_int
+        )
 
+        # Thinking budget (only for non-adaptive thinking models)
         if (
             self.model_info.capabilities
             and self.model_info.capabilities.thinking.supported
             and not self.model_info.capabilities.thinking.types.adaptive.supported
         ):
+            max_tokens_for_hint = self.model_info.max_tokens or DEFAULT[CONF_MAX_TOKENS]
             step_schema[
                 vol.Optional(
-                    CONF_THINKING_BUDGET, default=DEFAULT[CONF_THINKING_BUDGET]
+                    CONF_THINKING_BUDGET,
+                    default=DEFAULT[CONF_THINKING_BUDGET],
+                    description=f"Tokens reserved for internal reasoning. Must be less than Maximum tokens ({max_tokens_for_hint}). Set to 1024+ to enable extended thinking.",
                 )
             ] = (
                 vol.All(
@@ -525,6 +543,7 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
         else:
             self.options.pop(CONF_THINKING_BUDGET, None)
 
+        # Thinking effort (only if capability is supported)
         if (
             self.model_info.capabilities
             and (effort_capability := self.model_info.capabilities.effort).supported
@@ -557,12 +576,17 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
         else:
             self.options.pop(CONF_THINKING_EFFORT, None)
 
+        # ===== Extended Thinking =====
+        step_schema[
+            vol.Optional(
+                CONF_CODE_EXECUTION,
+                default=DEFAULT[CONF_CODE_EXECUTION],
+            )
+        ] = bool
+
+        # ===== Web Capabilities =====
         step_schema.update(
             {
-                vol.Optional(
-                    CONF_CODE_EXECUTION,
-                    default=DEFAULT[CONF_CODE_EXECUTION],
-                ): bool,
                 vol.Optional(
                     CONF_WEB_SEARCH,
                     default=DEFAULT[CONF_WEB_SEARCH],
@@ -586,13 +610,14 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
             }
         )
 
+        # Clean up internal location fields (not shown in UI)
         self.options.pop(CONF_WEB_SEARCH_CITY, None)
         self.options.pop(CONF_WEB_SEARCH_REGION, None)
         self.options.pop(CONF_WEB_SEARCH_COUNTRY, None)
         self.options.pop(CONF_WEB_SEARCH_TIMEZONE, None)
 
+        # ===== Tool Options =====
         model = self.options[CONF_CHAT_MODEL]
-
         if not model.startswith(tuple(TOOL_SEARCH_UNSUPPORTED_MODELS)):
             step_schema[
                 vol.Optional(
@@ -688,11 +713,37 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
         )
 
     def _get_model_list(self) -> list[SelectOptionDict]:
-        """Get list of available models."""
+        """Get list of available models with descriptive labels."""
         coordinator = self._get_entry().runtime_data
+        provider = coordinator.provider
+
+        # Known model descriptions for common models
+        _MODEL_DESCRIPTIONS: dict[str, str] = {
+            # Anthropic models
+            "claude-3-5-sonnet-20241022": "- Latest, most capable",
+            "claude-3-5-sonnet-20240620": "- (previous version)",
+            "claude-3-5-haiku-20241022": "- Faster, cost-effective",
+            "claude-3-opus-20240229": "- Most capable (legacy)",
+            "claude-3-sonnet-20240229": "- Balanced (legacy)",
+            "claude-3-haiku-20240307": "- Fastest (legacy)",
+            # OpenAI models
+            "gpt-4o-mini": "- Fast, cost-effective",
+            "gpt-4o": "- Latest, most capable",
+            "gpt-4-turbo": "- High performance (legacy)",
+            "gpt-3.5-turbo": "- Fast, economical (legacy)",
+            # Local/server models - generic hints
+        }
+
+        def _augmented_label(model_id: str, display_name: str) -> str:
+            """Add description hint to known models."""
+            if desc := _MODEL_DESCRIPTIONS.get(model_id):
+                return f"{display_name} {desc}"
+            # For local/custom servers, just use the display name
+            return display_name
+
         return [
             SelectOptionDict(
-                label=model_info.display_name,
+                label=_augmented_label(model_info.id, model_info.display_name),
                 value=model_info.id,
             )
             for model_info in coordinator.data or []

@@ -624,7 +624,7 @@ async def test_flow_get_model_list(
     mock_config_entry: ConfigEntry,
     mock_models_list: list[anthropic.types.ModelInfo],
 ) -> None:
-    """Test _get_model_list returns available models."""
+    """Test _get_model_list returns available models with descriptions."""
     mock_config_entry.runtime_data = MagicMock()
     mock_config_entry.runtime_data.data = mock_models_list
 
@@ -635,7 +635,8 @@ async def test_flow_get_model_list(
 
     assert len(models) == len(mock_models_list)
     assert models[0]["value"] == mock_models_list[0].id
-    assert models[0]["label"] == mock_models_list[0].display_name
+    # Labels now include descriptions for known models (e.g., "Claude 3.5 Sonnet - Latest, most capable")
+    assert models[0]["label"].startswith(mock_models_list[0].display_name)
 
 
 async def test_flow_subentry_reconfigure(

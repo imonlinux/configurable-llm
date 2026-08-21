@@ -2,6 +2,31 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.0-beta.5
+
+Pre-release: HACS compliance and UX improvements.
+
+### Changed
+
+- **Dependency version constraints for HACS compliance** — Changed `anthropic==0.108.0` to `anthropic>=0.108.0` and `openai==2.45.0` to `openai>=2.45.0` in manifest.json. Uses minimum version constraints instead of exact pins to avoid forcing Home Assistant core to downgrade packages it already ships. Maintains compatibility while allowing HA to manage its own dependency tree.
+
+### Added
+
+- **Enhanced configuration form UX** — Added helpful descriptions to all configuration fields:
+  - Provider picker now explains preset selection and when to use Custom
+  - API key field shows expected format for each protocol (sk-ant-..., sk-...)
+  - Recommended mode toggle explains what it simplifies
+  - Temperature, Top P, and Thinking Budget fields now include clear explanations of their purpose and valid ranges
+  - Model selection includes helpful labels (e.g., "- Latest, most capable") to distinguish similar models
+- **Model description labels** — Each model in the selector now includes a brief description highlighting its key characteristics (speed, capability, cost-effectiveness) to help users choose the right model
+- **Inline validation hints** — Thinking Budget field now includes inline text explaining the constraint relationship with Maximum tokens
+- **Organized model options schema** — Anthropic model options form now has clear section separators for Response Options, Extended Thinking, Web Capabilities, and Tool Options
+
+### Fixed
+
+- **Test compatibility with Python 3.13** — Updated phantom-python-tester Docker image to Python 3.13-slim for compatibility with pytest-homeassistant-custom-component==0.13.270
+- **Test assertion for model labels** — Updated test_flow_get_model_list to check for prefix match instead of exact equality to accommodate new description labels
+
 ## 1.2.0-beta.4
 
 Pre-release: Home Assistant 2026.8 dependency compatibility update.
