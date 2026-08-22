@@ -65,12 +65,6 @@ PRESETS: list[dict[str, str | None]] = [
     {"value": "custom", "protocol": None, "base_url": None},
 ]
 
-# Provider key format hints for setup form
-PROVIDER_KEY_FORMATS: dict[str, str] = {
-    PROTOCOL_ANTHROPIC: "sk-ant-...",
-    PROTOCOL_OPENAI: "sk-...",
-}
-
 
 def get_preset(value: str) -> dict[str, str | None] | None:
     """Look up a preset by its value, or None if not found."""

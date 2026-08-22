@@ -173,7 +173,7 @@ class ConfigurableLLMConfigFlow(ConfigFlow, domain=DOMAIN):
     MINOR_VERSION = 2
 
     # Store initial input for use in endpoint step
-    _initial_input: dict[str, Any] = {}
+    _initial_input: dict[str, Any]
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None

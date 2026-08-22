@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.0-beta.7
+
+Pre-release: bug fixes and hygiene for two-step configuration flow.
+
+### Fixed
+
+- **Endpoint step now has full translations** — Added `endpoint` step title, description, and field descriptions to `strings.json` and `translations/en.json`. The second setup step now displays "Confirm API endpoint" with proper field labels instead of rendering without context.
+- **Translation files synchronized** — `strings.json` and `translations/en.json` are now byte-parity, preventing drift between developer source and what users see in the UI.
+- **Anthropic dependency now capped** — Changed `anthropic>=0.108.0` to `anthropic>=0.108.0,<0.109` to guard against untested newer SDK versions while still allowing patch updates within the 0.108.x series.
+- **Removed dead PROVIDER_KEY_FORMATS constant** — Cleaned up unreferenced constant from `const.py`.
+- **Fixed mutable class-attribute default** — Changed `_initial_input` to annotation-only declaration in `config_flow.py`.
+
 ## 1.2.0-beta.6
 
 Pre-release: two-step configuration flow with preset endpoint preview.

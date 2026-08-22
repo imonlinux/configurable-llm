@@ -6,15 +6,23 @@
         "description": "Set up your Configurable LLM connection. This integration speaks the Anthropic Messages API and the OpenAI Chat Completions API, so it works with the official Anthropic API, z.ai, and any OpenAI-compatible endpoint including local servers (LM Studio, Ollama, vLLM), OpenRouter, Groq and more.",
         "data": {
           "preset": "Provider",
+          "api_key": "API key"
+        },
+        "data_description": {
+          "preset": "Choose your LLM provider. This pre-fills the protocol and base URL on the next step. Choose Custom only if your provider isn't listed.",
+          "api_key": "Your API key for the LLM service. Anthropic keys start with `sk-ant-`, OpenAI keys with `sk-`. Local servers often accept any non-empty value."
+        }
+      },
+      "endpoint": {
+        "title": "Confirm API endpoint",
+        "description": "Review the protocol and base URL for your connection. These are pre-filled from your provider selection — edit them only if you are using a custom or self-hosted endpoint.",
+        "data": {
           "protocol": "API protocol",
-          "api_key": "API key",
           "base_url": "API base URL"
         },
         "data_description": {
-          "preset": "Choose your LLM provider. This automatically sets the correct protocol and base URL. Choose Custom only if your provider isn't listed.",
-          "protocol": "Required only when Custom is selected above. Anthropic for Anthropic-compatible APIs; OpenAI Chat Completions for OpenAI-compatible servers.",
-          "api_key": "Your API key for the LLM service. Anthropic keys start with `sk-ant-`, OpenAI keys with `sk-`. Local servers often accept any non-empty value.",
-          "base_url": "Required only when Custom is selected. The base URL of your LLM API endpoint. See the documentation for provider-specific URLs."
+          "protocol": "The API contract your endpoint speaks. Anthropic for the Anthropic Messages API; OpenAI Chat Completions for OpenAI-compatible servers.",
+          "base_url": "The base URL of your LLM API endpoint. Pre-filled from the provider preset; override it for a self-hosted server. See the documentation for provider-specific URLs."
         }
       },
       "reauth_confirm": {

@@ -6,15 +6,23 @@
         "description": "Set up your Configurable LLM connection. This integration speaks the Anthropic Messages API and the OpenAI Chat Completions API, so it works with the official Anthropic API, z.ai, and any OpenAI-compatible endpoint including local servers (LM Studio, Ollama, vLLM), OpenRouter, Groq and more.",
         "data": {
           "preset": "Provider",
+          "api_key": "API key"
+        },
+        "data_description": {
+          "preset": "Choose your LLM provider. This pre-fills the protocol and base URL on the next step. Choose Custom only if your provider isn't listed.",
+          "api_key": "Your API key for the LLM service. Anthropic keys start with `sk-ant-`, OpenAI keys with `sk-`. Local servers often accept any non-empty value."
+        }
+      },
+      "endpoint": {
+        "title": "Confirm API endpoint",
+        "description": "Review the protocol and base URL for your connection. These are pre-filled from your provider selection — edit them only if you are using a custom or self-hosted endpoint.",
+        "data": {
           "protocol": "API protocol",
-          "api_key": "API key",
           "base_url": "API base URL"
         },
         "data_description": {
-          "preset": "Pick a provider to pre-fill the protocol and base URL. Choose Custom to enter them yourself.",
           "protocol": "The API contract your endpoint speaks. Anthropic for the Anthropic Messages API; OpenAI Chat Completions for OpenAI-compatible servers.",
-          "api_key": "Your API key for the LLM service. For the official Anthropic API this starts with `sk-ant-`. Alternative providers issue their own keys; local servers often accept any value.",
-          "base_url": "The base URL of your LLM API endpoint. Filled in by the provider preset; override it (or use Custom) for a self-hosted server. See the documentation for provider-specific URLs."
+          "base_url": "The base URL of your LLM API endpoint. Pre-filled from the provider preset; override it for a self-hosted server. See the documentation for provider-specific URLs."
         }
       },
       "reauth_confirm": {
@@ -61,7 +69,7 @@
             "name": "The name shown for this conversation agent in Home Assistant.",
             "prompt": "Instructions telling the model how to respond. Supports Home Assistant templating.",
             "llm_hass_api": "Select which Home Assistant APIs the model can use to control your devices. Only entities you have exposed will be accessible.",
-            "recommended": "Use the recommended model and settings. Turn off to customise the model, token limits, thinking, web search and other advanced options."
+            "recommended": "Use recommended settings for simpler setup. The model and options will use sensible defaults. Turn off to configure the model, token limits, thinking, and other advanced options."
           }
         },
         "advanced": {
@@ -76,13 +84,13 @@
           "data_description": {
             "chat_model": "The model used to generate responses. You can pick from the list or type a model ID for providers that don't expose a list endpoint.",
             "prompt_caching": "Optimise cost and response time (Anthropic). **Disabled** sends everything fresh each time, **System prompt** caches the system prompt and tools, and **Full** also caches every user message.",
-            "temperature": "Sampling temperature for OpenAI-compatible models (0–2). Higher is more random.",
-            "top_p": "Nucleus sampling cutoff for OpenAI-compatible models (0–1)."
+            "temperature": "Controls randomness in responses (0.0–2.0). Lower = more focused, Higher = more creative. 1.0 is a balanced default.",
+            "top_p": "Nucleus sampling cutoff (0.0–1.0). Limits the model to the most likely tokens. 1.0 includes all tokens; lower values for more focused output."
           }
         },
         "model": {
           "title": "Model-specific options",
-          "description": "Fine-tune the selected model. Available options depend on what the model supports. Tool features such as web search, web fetch, and code execution are not implemented by every provider — if you enable one and your provider doesn't support it, the model will return an error at runtime.",
+          "description": "Fine-tune the selected model. Options are grouped by category: response limits, extended thinking, and web capabilities. Available options depend on what the model supports. Tool features such as web search, web fetch, and code execution are not implemented by every provider — if you enable one and your provider doesn't support it, the model will return an error at runtime.",
           "data": {
             "max_tokens": "Maximum tokens to return in response",
             "thinking_budget": "Thinking budget",
@@ -98,7 +106,7 @@
           },
           "data_description": {
             "max_tokens": "Maximum length of each response, in tokens.",
-            "thinking_budget": "Tokens reserved for the model's internal reasoning, out of the total maximum. Set to 1024 or higher to enable extended thinking.",
+            "thinking_budget": "Tokens reserved for the model's internal reasoning (out of max_tokens). Must be less than Maximum tokens. Set to 1024 or higher to enable extended thinking.",
             "thinking_effort": "How much effort the model should spend reasoning. Higher values produce more thorough but slower (and more expensive) answers.",
             "code_execution": "Allow the model to execute code in a secure sandbox, useful for data analysis and complex calculations.",
             "web_search": "Allow the model to search the web for current information beyond its training cutoff.",
@@ -137,7 +145,7 @@
           },
           "data_description": {
             "name": "The name shown for this AI task in Home Assistant.",
-            "recommended": "Use the recommended model and settings. Turn off to customise the model and advanced options."
+            "recommended": "Use recommended settings for simpler setup. The model and options will use sensible defaults. Turn off to configure the model and advanced options."
           }
         },
         "advanced": {
@@ -152,13 +160,13 @@
           "data_description": {
             "chat_model": "The model used to generate responses. You can pick from the list or type a model ID for providers that don't expose a list endpoint.",
             "prompt_caching": "Optimise cost and response time (Anthropic). **Disabled** sends everything fresh each time, **System prompt** caches the system prompt and tools, and **Full** also caches every user message.",
-            "temperature": "Sampling temperature for OpenAI-compatible models (0–2). Higher is more random.",
-            "top_p": "Nucleus sampling cutoff for OpenAI-compatible models (0–1)."
+            "temperature": "Controls randomness in responses (0.0–2.0). Lower = more focused, Higher = more creative. 1.0 is a balanced default.",
+            "top_p": "Nucleus sampling cutoff (0.0–1.0). Limits the model to the most likely tokens. 1.0 includes all tokens; lower values for more focused output."
           }
         },
         "model": {
           "title": "Model-specific options",
-          "description": "Fine-tune the selected model. Available options depend on what the model supports. Tool features such as web search, web fetch, and code execution are not implemented by every provider — if you enable one and your provider doesn't support it, the model will return an error at runtime.",
+          "description": "Fine-tune the selected model. Options are grouped by category: response limits, extended thinking, and web capabilities. Available options depend on what the model supports. Tool features such as web search, web fetch, and code execution are not implemented by every provider — if you enable one and your provider doesn't support it, the model will return an error at runtime.",
           "data": {
             "max_tokens": "Maximum tokens to return in response",
             "thinking_budget": "Thinking budget",
@@ -174,7 +182,7 @@
           },
           "data_description": {
             "max_tokens": "Maximum length of each response, in tokens.",
-            "thinking_budget": "Tokens reserved for the model's internal reasoning, out of the total maximum. Set to 1024 or higher to enable extended thinking.",
+            "thinking_budget": "Tokens reserved for the model's internal reasoning (out of max_tokens). Must be less than Maximum tokens. Set to 1024 or higher to enable extended thinking.",
             "thinking_effort": "How much effort the model should spend reasoning. Higher values produce more thorough but slower (and more expensive) answers.",
             "code_execution": "Allow the model to execute code in a secure sandbox, useful for data analysis and complex calculations.",
             "web_search": "Allow the model to search the web for current information beyond its training cutoff.",
