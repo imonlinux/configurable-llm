@@ -1,18 +1,19 @@
 """Coordinator for the Configurable LLM integration."""
 
-import datetime
-import re
+from __future__ import annotations
 
-import anthropic
+import datetime
+from typing import Any
+
+from anthropic.types import ModelInfo
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers.httpx_client import get_async_client
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from .const import CONF_BASE_URL, DOMAIN, LOGGER
+from .const import CONF_BASE_URL, CONF_PROTOCOL, LOGGER
+from .providers import LLMProvider, get_provider
 
 UPDATE_INTERVAL_CONNECTED = datetime.timedelta(hours=12)
 UPDATE_INTERVAL_DISCONNECTED = datetime.timedelta(minutes=1)
@@ -20,29 +21,11 @@ UPDATE_INTERVAL_DISCONNECTED = datetime.timedelta(minutes=1)
 type ConfigurableLLMConfigEntry = ConfigEntry[ConfigurableLLMCoordinator]
 
 
-_model_short_form = re.compile(r"[^\d]-\d$")
-
-
-@callback
-def model_alias(model_id: str) -> str:
-    """Resolve alias from versioned model name."""
-    # Preserve original model ID for non-Anthropic models
-    # Check if this looks like an Anthropic model (starts with claude-)
-    if not model_id.startswith("claude-"):
-        return model_id  # Return as-is for alternative providers
-
-    # Process Anthropic model names normally
-    if model_id[-2:-1] != "-" and not model_id.endswith("-preview"):
-        model_id = model_id[:-9]
-    if _model_short_form.search(model_id):
-        return model_id + "-0"
-    return model_id
-
-
-class ConfigurableLLMCoordinator(DataUpdateCoordinator[list[anthropic.types.ModelInfo]]):
+class ConfigurableLLMCoordinator(DataUpdateCoordinator[list[ModelInfo]]):
     """Coordinator using different intervals after success and failure."""
 
-    client: anthropic.AsyncAnthropic
+    client: Any
+    provider: LLMProvider
 
     def __init__(self, hass: HomeAssistant, config_entry: ConfigurableLLMConfigEntry) -> None:
         """Initialize the coordinator."""
@@ -56,43 +39,33 @@ class ConfigurableLLMCoordinator(DataUpdateCoordinator[list[anthropic.types.Mode
             always_update=False,
         )
 
-        # Get base URL from config, default to standard Anthropic API
-        base_url = config_entry.data.get(CONF_BASE_URL, "https://api.anthropic.com")
-
-        # Initialize client with custom base URL
-        self.client = anthropic.AsyncAnthropic(
-            api_key=config_entry.data[CONF_API_KEY],
-            base_url=base_url,
-            http_client=get_async_client(hass)
+        # Resolve the provider from the entry's protocol and build its client.
+        # ``CONF_PROTOCOL`` defaults to Anthropic for pre-migration entries.
+        self.provider = get_provider(config_entry.data.get(CONF_PROTOCOL))
+        base_url = config_entry.data.get(CONF_BASE_URL, self.provider.default_base_url)
+        self.client = self.provider.build_client(
+            hass,
+            config_entry.data[CONF_API_KEY],
+            base_url,
         )
 
     @callback
-    def async_set_updated_data(self, data: list[anthropic.types.ModelInfo]) -> None:
+    def async_set_updated_data(self, data: list[ModelInfo]) -> None:
         """Manually update data, notify listeners and update refresh interval."""
         self.update_interval = UPDATE_INTERVAL_CONNECTED
         super().async_set_updated_data(data)
 
-    async def async_update_data(self) -> list[anthropic.types.ModelInfo]:
-        """Fetch data from the API."""
-        try:
-            self.update_interval = UPDATE_INTERVAL_DISCONNECTED
-            result = await self.client.models.list(timeout=10.0)
-            self.update_interval = UPDATE_INTERVAL_CONNECTED
-        except anthropic.APITimeoutError as err:
-            raise TimeoutError(err.message or str(err)) from err
-        except anthropic.AuthenticationError as err:
-            raise ConfigEntryAuthFailed(
-                translation_domain=DOMAIN,
-                translation_key="api_authentication_error",
-                translation_placeholders={"message": err.message},
-            ) from err
-        except anthropic.APIError as err:
-            raise UpdateFailed(
-                translation_domain=DOMAIN,
-                translation_key="api_error",
-                translation_placeholders={"message": err.message},
-            ) from err
-        return result.data
+    async def async_update_data(self) -> list[ModelInfo]:
+        """Fetch data from the API.
+
+        The provider raises ``ConfigEntryAuthFailed`` / ``TimeoutError`` /
+        ``UpdateFailed`` (mapped from its SDK), which the
+        ``DataUpdateCoordinator`` machinery handles.
+        """
+        self.update_interval = UPDATE_INTERVAL_DISCONNECTED
+        result = await self.provider.async_list_models(self.client)
+        self.update_interval = UPDATE_INTERVAL_CONNECTED
+        return result
 
     def mark_connection_error(self) -> None:
         """Mark the connection as having an error and reschedule background check."""
@@ -104,19 +77,19 @@ class ConfigurableLLMCoordinator(DataUpdateCoordinator[list[anthropic.types.Mode
                 self._schedule_refresh()
 
     @callback
-    def get_model_info(self, model_id: str) -> tuple[anthropic.types.ModelInfo, bool]:
+    def get_model_info(self, model_id: str) -> tuple[ModelInfo, bool]:
         """Get model info for a given model ID."""
         # First try: exact name match
         for model in self.data or []:
             if model.id == model_id:
                 return model, True
         # Second try: match by alias
-        alias = model_alias(model_id)
+        alias = self.provider.model_alias(model_id)
         for model in self.data or []:
-            if model_alias(model.id) == alias:
+            if self.provider.model_alias(model.id) == alias:
                 return model, True
         # Model not found, return safe defaults
-        return anthropic.types.ModelInfo(
+        return ModelInfo(
             type="model",
             id=model_id,
             created_at=datetime.datetime(1970, 1, 1, tzinfo=datetime.UTC),
@@ -127,12 +100,10 @@ class ConfigurableLLMCoordinator(DataUpdateCoordinator[list[anthropic.types.Mode
     def get_default_model(self, fallback: str) -> str:
         """Return a sensible default model ID for this provider.
 
-        Uses the first model returned by the provider's `/v1/models` endpoint
-        when available. This makes the integration work out of the box with
+        Uses the first model returned by the provider's model list when
+        available. This makes the integration work out of the box with
         non-Anthropic providers (z.ai, local servers, etc.) whose model IDs
         differ from Anthropic's. Falls back to the supplied `fallback` value
         when the provider does not expose a usable model list.
         """
-        if self.data:
-            return self.data[0].id
-        return fallback
+        return self.provider.get_default_model(self.data, fallback)

@@ -12,11 +12,13 @@ from homeassistant.helpers import issue_registry as ir
 from custom_components.configurable_llm import (
     DOMAIN,
     PLATFORMS,
+    async_migrate_entry,
     async_setup,
     async_setup_entry,
     async_unload_entry,
     async_update_options,
 )
+from custom_components.configurable_llm.const import CONF_PROTOCOL, PROTOCOL_ANTHROPIC
 
 
 async def test_async_setup(hass: HomeAssistant) -> None:
@@ -37,7 +39,8 @@ async def test_async_setup_entry(
     mock_config_entry.subentries = {}
 
     with patch(
-        "custom_components.configurable_llm.coordinator.anthropic.AsyncAnthropic",
+        "custom_components.configurable_llm.providers.anthropic_provider"
+        ".anthropic.AsyncAnthropic",
         return_value=mock_anthropic_client,
     ):
         result = await async_setup_entry(hass, mock_config_entry)
@@ -72,7 +75,8 @@ async def test_async_setup_entry_with_deprecated_model(
     mock_config_entry.runtime_data = None
 
     with patch(
-        "custom_components.configurable_llm.coordinator.anthropic.AsyncAnthropic",
+        "custom_components.configurable_llm.providers.anthropic_provider"
+        ".anthropic.AsyncAnthropic",
         return_value=mock_anthropic_client,
     ), patch(
         "homeassistant.helpers.issue_registry.async_create_issue"
@@ -112,3 +116,47 @@ async def test_async_update_options(
     hass.config_entries.async_reload.assert_called_once_with(
         mock_config_entry.entry_id
     )
+
+
+async def test_async_migrate_entry_v1_to_v2(
+    hass: HomeAssistant,
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Test migration from v1 to v2 adds protocol: anthropic.
+
+    Regression test for CRITICAL-1: v1 entries must migrate to v2 with
+    protocol stamped, otherwise HA sets MIGRATION_ERROR and integration
+    fails to load.
+    """
+    # Set up a v1 entry (pre-1.2.0, no protocol field)
+    mock_config_entry.version = 1
+    mock_config_entry.data = {"api_key": "sk-ant-test1234"}
+
+    hass.config_entries.async_update_entry = MagicMock()
+
+    result = await async_migrate_entry(hass, mock_config_entry)
+
+    assert result is True
+    hass.config_entries.async_update_entry.assert_called_once()
+    call_kwargs = hass.config_entries.async_update_entry.call_args.kwargs
+    assert call_kwargs["version"] == 2
+    assert call_kwargs["data"][CONF_PROTOCOL] == PROTOCOL_ANTHROPIC
+
+
+async def test_async_migrate_entry_v2_noop(
+    hass: HomeAssistant,
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Test migration from v2 is a no-op."""
+    mock_config_entry.version = 2
+    mock_config_entry.data = {
+        "api_key": "sk-ant-test1234",
+        CONF_PROTOCOL: PROTOCOL_ANTHROPIC,
+    }
+    async_update_entry = MagicMock()
+    hass.config_entries.async_update_entry = async_update_entry
+
+    result = await async_migrate_entry(hass, mock_config_entry)
+
+    assert result is True
+    async_update_entry.assert_not_called()

@@ -11,43 +11,15 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from custom_components.configurable_llm.coordinator import (
     ConfigurableLLMCoordinator,
-    model_alias,
 )
 from custom_components.configurable_llm.const import CONF_BASE_URL, DEFAULT_BASE_URL
 
-
-def test_model_alias_anthropic_models() -> None:
-    """Test model_alias function with Anthropic models."""
-    # Standard versioned model (gets date stripped)
-    assert model_alias("claude-3-5-sonnet-20241022") == "claude-3-5-sonnet"
-    # Short form model (single digit before dash at end) - only works if second-to-last char is not a digit
-    # claude-3-opus-20240229-1 has '2' before '-', so doesn't match the pattern
-    assert model_alias("claude-3-opus-20240229-1") == "claude-3-opus-20240229-1"
-    assert model_alias("claude-3-opus-20240229") == "claude-3-opus"
-    # Preview models (keep full name)
-    assert model_alias("claude-3-5-sonnet-20241022-preview") == "claude-3-5-sonnet-20241022-preview"
-
-
-def test_model_alias_non_anthropic_models() -> None:
-    """Test model_alias function with non-Anthropic models."""
-    # z.ai models
-    assert model_alias("glm-5.1") == "glm-5.1"
-    assert model_alias("z-ai-custom-model") == "z-ai-custom-model"
-    # Local models
-    assert model_alias("llama-3-70b") == "llama-3-70b"
-    assert model_alias("mistral-7b") == "mistral-7b"
-
-
-def test_model_alias_preserves_non_standard_formatting() -> None:
-    """Test that non-Anthropic model IDs are preserved exactly."""
-    custom_models = [
-        "gpt-4",
-        "deepseek-chat",
-        "qwen-72b-chat",
-        "phi-3-medium-128k-instruct",
-    ]
-    for model_id in custom_models:
-        assert model_alias(model_id) == model_id
+# The Anthropic client is constructed inside the Anthropic provider, so patches
+# target that module (not the coordinator, which no longer imports anthropic).
+_ANTHROPIC_CLIENT = (
+    "custom_components.configurable_llm.providers.anthropic_provider"
+    ".anthropic.AsyncAnthropic"
+)
 
 
 async def test_coordinator_init(
@@ -71,7 +43,7 @@ async def test_coordinator_init_with_custom_base_url(
     mock_config_entry.data[CONF_BASE_URL] = custom_url
 
     with patch(
-        "custom_components.configurable_llm.coordinator.anthropic.AsyncAnthropic"
+        _ANTHROPIC_CLIENT
     ) as mock_anthropic:
         coordinator = ConfigurableLLMCoordinator(hass, mock_config_entry)
 
@@ -89,7 +61,7 @@ async def test_coordinator_init_with_default_base_url(
         del mock_config_entry.data[CONF_BASE_URL]
 
     with patch(
-        "custom_components.configurable_llm.coordinator.anthropic.AsyncAnthropic"
+        _ANTHROPIC_CLIENT
     ) as mock_anthropic:
         coordinator = ConfigurableLLMCoordinator(hass, mock_config_entry)
 

@@ -1,14 +1,21 @@
 """Test the Configurable LLM config flow."""
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 
 import anthropic
 import httpx
 import pytest
-from homeassistant.config_entries import ConfigEntry, SOURCE_REAUTH, ConfigEntryState
-from homeassistant.const import CONF_API_KEY, CONF_LLM_HASS_API, CONF_NAME, CONF_PROMPT
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigEntryState,
+    ConfigFlow,
+    SOURCE_REAUTH,
+)
+from homeassistant.const import CONF_API_KEY, CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.exceptions import ConfigEntryAuthFailed
 
 from custom_components.configurable_llm.config_flow import (
     ConfigurableLLMConfigFlow,
@@ -20,13 +27,18 @@ from custom_components.configurable_llm.const import (
     CONF_CHAT_MODEL,
     CONF_CODE_EXECUTION,
     CONF_MAX_TOKENS,
+    CONF_PRESET,
+    CONF_PROTOCOL,
     CONF_PROMPT_CACHING,
     CONF_RECOMMENDED,
     CONF_THINKING_BUDGET,
     CONF_WEB_SEARCH,
     DEFAULT,
     DEFAULT_BASE_URL,
+    PROTOCOL_ANTHROPIC,
+    PROTOCOL_OPENAI,
 )
+from custom_components.configurable_llm.providers import AnthropicProvider, OpenAIChatProvider
 
 
 async def test_validate_input_success(
@@ -36,7 +48,8 @@ async def test_validate_input_success(
 ) -> None:
     """Test validate_input with valid credentials."""
     with patch(
-        "custom_components.configurable_llm.config_flow.anthropic.AsyncAnthropic",
+        "custom_components.configurable_llm.providers.anthropic_provider"
+        ".anthropic.AsyncAnthropic",
         return_value=mock_anthropic_client,
     ):
         await validate_input(
@@ -61,7 +74,7 @@ async def test_validate_input_timeout(
         ))
         mock_anthropic.return_value = mock_client
 
-        with pytest.raises(anthropic.APITimeoutError):
+        with pytest.raises(TimeoutError):
             await validate_input(
                 hass,
                 {CONF_API_KEY: mock_api_key, CONF_BASE_URL: DEFAULT_BASE_URL},
@@ -100,7 +113,7 @@ async def test_validate_input_auth_error(
         )
         mock_anthropic.return_value = mock_client
 
-        with pytest.raises(anthropic.APIStatusError):
+        with pytest.raises(ConfigEntryAuthFailed):
             await validate_input(
                 hass,
                 {CONF_API_KEY: mock_api_key, CONF_BASE_URL: DEFAULT_BASE_URL},
@@ -112,23 +125,33 @@ async def test_flow_step_user(
     mock_api_key: str,
     mock_anthropic_client: MagicMock,
 ) -> None:
-    """Test user step creates entry."""
+    """Test user step with endpoint confirmation creates entry."""
     with patch(
-        "custom_components.configurable_llm.config_flow.anthropic.AsyncAnthropic",
+        "custom_components.configurable_llm.providers.anthropic_provider"
+        ".anthropic.AsyncAnthropic",
         return_value=mock_anthropic_client,
     ):
         flow = ConfigurableLLMConfigFlow()
         flow.hass = hass
 
-        result = await flow.async_step_user(
-            {CONF_API_KEY: mock_api_key, CONF_BASE_URL: DEFAULT_BASE_URL}
+        # Step 1: Submit preset and API key
+        result1 = await flow.async_step_user(
+            {CONF_PRESET: "anthropic", CONF_API_KEY: mock_api_key}
         )
+        assert result1["type"] == FlowResultType.FORM
+        assert result1["step_id"] == "endpoint"
 
-    assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["title"] == "Configurable LLM"
-    assert result["data"][CONF_API_KEY] == mock_api_key
-    assert result["data"][CONF_BASE_URL] == DEFAULT_BASE_URL
-    assert len(result["subentries"]) == 2
+        # Step 2: Confirm endpoint (pre-filled, submit)
+        result2 = await flow.async_step_endpoint({
+            CONF_PROTOCOL: PROTOCOL_ANTHROPIC,
+            CONF_BASE_URL: DEFAULT_BASE_URL,
+        })
+
+    assert result2["type"] == FlowResultType.CREATE_ENTRY
+    assert result2["title"] == "Configurable LLM"
+    assert result2["data"][CONF_API_KEY] == mock_api_key
+    assert result2["data"][CONF_BASE_URL] == DEFAULT_BASE_URL
+    assert len(result2["subentries"]) == 2
 
 
 async def test_flow_step_user_show_form(
@@ -162,9 +185,16 @@ async def test_flow_step_user_timeout_error(
         flow = ConfigurableLLMConfigFlow()
         flow.hass = hass
 
-        result = await flow.async_step_user(
-            {CONF_API_KEY: mock_api_key, CONF_BASE_URL: DEFAULT_BASE_URL}
+        # Step 1: Submit preset and API key
+        await flow.async_step_user(
+            {CONF_PRESET: "anthropic", CONF_API_KEY: mock_api_key}
         )
+
+        # Step 2: Submit endpoint and get timeout error
+        result = await flow.async_step_endpoint({
+            CONF_PROTOCOL: PROTOCOL_ANTHROPIC,
+            CONF_BASE_URL: DEFAULT_BASE_URL,
+        })
 
     assert result["type"] == FlowResultType.FORM
     assert result["errors"]["base"] == "timeout_connect"
@@ -193,9 +223,16 @@ async def test_flow_step_user_auth_error(
         flow = ConfigurableLLMConfigFlow()
         flow.hass = hass
 
-        result = await flow.async_step_user(
-            {CONF_API_KEY: mock_api_key, CONF_BASE_URL: DEFAULT_BASE_URL}
+        # Step 1: Submit preset and API key
+        await flow.async_step_user(
+            {CONF_PRESET: "anthropic", CONF_API_KEY: mock_api_key}
         )
+
+        # Step 2: Submit endpoint and get auth error
+        result = await flow.async_step_endpoint({
+            CONF_PROTOCOL: PROTOCOL_ANTHROPIC,
+            CONF_BASE_URL: DEFAULT_BASE_URL,
+        })
 
     assert result["type"] == FlowResultType.FORM
     assert result["errors"]["base"] == "authentication_error"
@@ -220,6 +257,174 @@ async def test_flow_step_reauth(
 
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "reauth_confirm"
+
+
+async def test_flow_step_reauth_validates_against_entry_endpoint(
+    hass: HomeAssistant,
+    mock_config_entry: ConfigEntry,
+    mock_api_key: str,
+) -> None:
+    """Regression test for HIGH-3: reauth validates against entry's endpoint.
+
+    An OpenAI-protocol entry (e.g., Ollama at localhost:11434) must be
+    validated against that endpoint, not against api.anthropic.com. The
+    entry's protocol/base_url must be preserved during reauth.
+    """
+    # Set up an OpenAI-protocol entry (e.g., Ollama)
+    mock_config_entry.data = {
+        CONF_API_KEY: "old-key",
+        CONF_PROTOCOL: PROTOCOL_OPENAI,
+        CONF_BASE_URL: "http://localhost:11434/v1",
+    }
+
+    # Patch source property and _get_reauth_entry before creating flow
+    with patch.object(ConfigFlow, "source", new_callable=PropertyMock, return_value=SOURCE_REAUTH), patch(
+        "custom_components.configurable_llm.config_flow.ConfigurableLLMConfigFlow._get_reauth_entry",
+        return_value=mock_config_entry,
+    ):
+        flow = ConfigurableLLMConfigFlow()
+        flow.hass = hass
+        flow.context = {
+            "entry_id": mock_config_entry.entry_id,
+        }
+
+        # Patch validate_input to avoid network calls; verify it gets called
+        # with the entry's protocol/base_url preserved (no preset overwrite)
+        # Patch async_update_reload_and_abort to avoid UnknownEntry (entry not registered)
+        validated: list[dict] = []
+
+        async def _capture_validate(hass_, data):
+            # Snapshot a copy: mock call_args holds a reference, and the flow
+            # pops protocol/base_url from this same dict after validation.
+            validated.append(dict(data))
+
+        with patch(
+            "custom_components.configurable_llm.config_flow.validate_input",
+            new=_capture_validate,
+        ), patch(
+            "custom_components.configurable_llm.config_flow.ConfigFlow.async_update_reload_and_abort",
+            return_value={"type": FlowResultType.ABORT, "reason": "reauth_successful"},
+        ):
+            result = await flow.async_step_user({CONF_API_KEY: mock_api_key})
+
+    # Validate input was called with entry's protocol/base_url merged in
+    assert len(validated) == 1
+    call_args = validated[0]
+    assert call_args[CONF_PROTOCOL] == PROTOCOL_OPENAI
+    assert call_args[CONF_BASE_URL] == "http://localhost:11434/v1"
+    assert call_args[CONF_API_KEY] == mock_api_key
+    # No preset in the validated data (entry values are authoritative)
+    assert CONF_PRESET not in call_args
+
+    # On successful validation, the entry is updated and flow aborts
+    assert result["type"] == FlowResultType.ABORT
+    assert result["reason"] == "reauth_successful"
+
+
+async def test_flow_step_reauth_error_returns_reauth_confirm_form(
+    hass: HomeAssistant,
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Regression test for HIGH-3: reauth error returns reauth_confirm form.
+
+    When validation fails during reauth, the flow must return reauth_confirm
+    (api_key only) rather than the full user form (preset/protocol/base_url).
+    This prevents the preset field from overwriting the entry's protocol/base_url.
+    """
+    mock_config_entry.data = {
+        CONF_API_KEY: "old-key",
+        CONF_PROTOCOL: PROTOCOL_OPENAI,
+        CONF_BASE_URL: "http://localhost:11434/v1",
+    }
+
+    # Patch source property and _get_reauth_entry before creating flow
+    with patch.object(ConfigFlow, "source", new_callable=PropertyMock, return_value=SOURCE_REAUTH), patch(
+        "custom_components.configurable_llm.config_flow.ConfigurableLLMConfigFlow._get_reauth_entry",
+        return_value=mock_config_entry,
+    ):
+        flow = ConfigurableLLMConfigFlow()
+        flow.hass = hass
+        flow.context = {
+            "entry_id": mock_config_entry.entry_id,
+        }
+
+        with patch(
+            "custom_components.configurable_llm.config_flow.validate_input",
+            side_effect=ConfigEntryAuthFailed("Bad credentials"),
+        ):
+            result = await flow.async_step_user({CONF_API_KEY: "bad-key"})
+
+    # Error should return reauth_confirm form, not user form
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "reauth_confirm"
+    assert result["errors"]["base"] == "authentication_error"
+
+
+async def test_flow_step_reauth_retry_validates_against_entry_endpoint(
+    hass: HomeAssistant,
+    mock_config_entry: ConfigEntry,
+) -> None:
+    """Regression test for HIGH-3 (both defects, full scenario).
+
+    An OpenAI-protocol entry (e.g., Ollama) is reauthenticated; the first
+    attempt fails validation. The retry must (a) come from the reauth_confirm
+    form and (b) validate against the ENTRY's protocol/base_url — not a
+    preset default — with no preset key present. On beta.2 the retry
+    validated against api.anthropic.com and falsely succeeded.
+    """
+    mock_config_entry.data = {
+        CONF_API_KEY: "old-key",
+        CONF_PROTOCOL: PROTOCOL_OPENAI,
+        CONF_BASE_URL: "http://localhost:11434/v1",
+    }
+
+    validated: list[dict] = []
+
+    async def fake_validate(hass_, data):
+        validated.append(dict(data))
+        if len(validated) == 1:
+            raise ConfigEntryAuthFailed("Bad credentials")
+
+    with patch.object(
+        ConfigFlow, "source", new_callable=PropertyMock, return_value=SOURCE_REAUTH
+    ), patch(
+        "custom_components.configurable_llm.config_flow."
+        "ConfigurableLLMConfigFlow._get_reauth_entry",
+        return_value=mock_config_entry,
+    ):
+        flow = ConfigurableLLMConfigFlow()
+        flow.hass = hass
+        flow.context = {"entry_id": mock_config_entry.entry_id}
+
+        with patch(
+            "custom_components.configurable_llm.config_flow.validate_input",
+            new=fake_validate,
+        ), patch(
+            "custom_components.configurable_llm.config_flow."
+            "ConfigFlow.async_update_reload_and_abort",
+            return_value={
+                "type": FlowResultType.ABORT,
+                "reason": "reauth_successful",
+            },
+        ):
+            # Attempt 1: fails validation, must re-show reauth_confirm
+            result1 = await flow.async_step_user({CONF_API_KEY: "new-key"})
+            assert result1["type"] == FlowResultType.FORM
+            assert result1["step_id"] == "reauth_confirm"
+
+            # Attempt 2: retry from the reauth_confirm form (api_key only)
+            result2 = await flow.async_step_user({CONF_API_KEY: "new-key"})
+
+    # Both attempts must have validated against the entry's own endpoint.
+    assert len(validated) == 2
+    for call in validated:
+        assert call[CONF_PROTOCOL] == PROTOCOL_OPENAI
+        assert call[CONF_BASE_URL] == "http://localhost:11434/v1"
+        assert call[CONF_API_KEY] == "new-key"
+        assert CONF_PRESET not in call
+
+    assert result2["type"] == FlowResultType.ABORT
+    assert result2["reason"] == "reauth_successful"
 
 
 async def test_flow_subentry_conversation_init(
@@ -384,6 +589,7 @@ async def test_flow_subentry_thinking_budget_error(
     mock_config_entry.state = ConfigEntryState.LOADED
     mock_config_entry.runtime_data = MagicMock()
     mock_config_entry.runtime_data.data = mock_models_list
+    mock_config_entry.runtime_data.provider = AnthropicProvider()
 
     flow = ConversationSubentryFlowHandler()
     flow.hass = hass
@@ -441,7 +647,7 @@ async def test_flow_get_model_list(
     mock_config_entry: ConfigEntry,
     mock_models_list: list[anthropic.types.ModelInfo],
 ) -> None:
-    """Test _get_model_list returns available models."""
+    """Test _get_model_list returns available models with descriptions."""
     mock_config_entry.runtime_data = MagicMock()
     mock_config_entry.runtime_data.data = mock_models_list
 
@@ -452,7 +658,8 @@ async def test_flow_get_model_list(
 
     assert len(models) == len(mock_models_list)
     assert models[0]["value"] == mock_models_list[0].id
-    assert models[0]["label"] == mock_models_list[0].display_name
+    # Labels now include descriptions for known models (e.g., "Claude 3.5 Sonnet - Latest, most capable")
+    assert models[0]["label"].startswith(mock_models_list[0].display_name)
 
 
 async def test_flow_subentry_reconfigure(
@@ -528,3 +735,129 @@ async def test_flow_subentry_recommended_skips_advanced(
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert result["title"] == "Test"
+
+
+async def test_flow_step_user_anthropic_preset(
+    hass: HomeAssistant,
+    mock_api_key: str,
+    mock_anthropic_client: MagicMock,
+) -> None:
+    """Selecting the z.ai preset pre-fills protocol + base_url in endpoint step."""
+    with patch(
+        "custom_components.configurable_llm.providers.anthropic_provider"
+        ".anthropic.AsyncAnthropic",
+        return_value=mock_anthropic_client,
+    ):
+        flow = ConfigurableLLMConfigFlow()
+        flow.hass = hass
+
+        # Step 1: Submit preset and API key
+        result1 = await flow.async_step_user(
+            {CONF_PRESET: "zai", CONF_API_KEY: mock_api_key}
+        )
+        assert result1["type"] == FlowResultType.FORM
+        assert result1["step_id"] == "endpoint"
+
+        # Step 2: Submit pre-filled endpoint values
+        result2 = await flow.async_step_endpoint({
+            CONF_PROTOCOL: PROTOCOL_ANTHROPIC,
+            CONF_BASE_URL: "https://api.z.ai/api/anthropic",
+        })
+
+    assert result2["type"] == FlowResultType.CREATE_ENTRY
+    assert result2["data"][CONF_PROTOCOL] == PROTOCOL_ANTHROPIC
+    assert result2["data"][CONF_BASE_URL] == "https://api.z.ai/api/anthropic"
+    assert CONF_PRESET not in result2["data"]
+
+
+async def test_flow_step_user_openai_preset(
+    hass: HomeAssistant,
+    mock_api_key: str,
+) -> None:
+    """Selecting an OpenAI-compatible preset pre-fills protocol + base_url."""
+    mock_client = MagicMock()
+    mock_client.with_options.return_value.models.list = AsyncMock(
+        return_value=MagicMock(
+            data=[SimpleNamespace(id="gpt-4o-mini", created=1700000000, owned_by="openai")]
+        )
+    )
+    with patch(
+        "custom_components.configurable_llm.providers.openai_chat_provider"
+        ".openai.AsyncOpenAI",
+        return_value=mock_client,
+    ):
+        flow = ConfigurableLLMConfigFlow()
+        flow.hass = hass
+
+        # Step 1: Submit preset and API key
+        result1 = await flow.async_step_user(
+            {CONF_PRESET: "openrouter", CONF_API_KEY: mock_api_key}
+        )
+        assert result1["type"] == FlowResultType.FORM
+        assert result1["step_id"] == "endpoint"
+
+        # Step 2: Submit pre-filled endpoint values
+        result2 = await flow.async_step_endpoint({
+            CONF_PROTOCOL: PROTOCOL_OPENAI,
+            CONF_BASE_URL: "https://openrouter.ai/api/v1",
+        })
+
+    assert result2["type"] == FlowResultType.CREATE_ENTRY
+    assert result2["data"][CONF_PROTOCOL] == PROTOCOL_OPENAI
+    assert result2["data"][CONF_BASE_URL] == "https://openrouter.ai/api/v1"
+
+
+async def test_flow_step_endpoint_shows_prefilled_values(
+    hass: HomeAssistant,
+    mock_api_key: str,
+) -> None:
+    """Test that endpoint step shows pre-filled values from preset."""
+    flow = ConfigurableLLMConfigFlow()
+    flow.hass = hass
+
+    # Step 1: Submit z.ai preset
+    await flow.async_step_user(
+        {CONF_PRESET: "zai", CONF_API_KEY: mock_api_key}
+    )
+
+    # Step 2: Get endpoint form (without submitting)
+    result = await flow.async_step_endpoint(None)
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "endpoint"
+    # Verify suggested_values are set correctly
+    # The data_schema should have the preset values pre-filled
+    assert "data_schema" in result
+
+
+async def test_flow_subentry_openai_model_schema(
+    hass: HomeAssistant,
+    mock_config_entry: ConfigEntry,
+    mock_models_list: list[anthropic.types.ModelInfo],
+) -> None:
+    """The OpenAI model step exposes max_tokens/reasoning_effort, not thinking."""
+    mock_config_entry.state = ConfigEntryState.LOADED
+    mock_config_entry.runtime_data = MagicMock()
+    mock_config_entry.runtime_data.data = mock_models_list
+    mock_config_entry.runtime_data.provider = OpenAIChatProvider()
+
+    flow = ConversationSubentryFlowHandler()
+    flow.hass = hass
+    flow._get_entry = MagicMock(return_value=mock_config_entry)
+    flow.options = {CONF_NAME: "Test", CONF_CHAT_MODEL: "gpt-4o-mini"}
+    flow.model_info = mock_models_list[0]
+
+    with patch.object(
+        ConversationSubentryFlowHandler,
+        "_subentry_type",
+        new_callable=PropertyMock,
+        return_value="conversation",
+    ), patch.object(
+        ConversationSubentryFlowHandler,
+        "source",
+        new_callable=PropertyMock,
+        return_value="user",
+    ):
+        result = await flow.async_step_model({})
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY

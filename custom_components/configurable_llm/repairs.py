@@ -1,15 +1,14 @@
 """Issue repair flow for Configurable LLM."""
 
 from collections.abc import Iterator
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-import anthropic
-from anthropic.resources.messages.messages import DEPRECATED_MODELS
 import voluptuous as vol
 
-from homeassistant.components.repairs import RepairsFlow, RepairsFlowResult
+from homeassistant.components.repairs import RepairsFlow
 from homeassistant.config_entries import ConfigEntryState, ConfigSubentry
 from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.selector import (
     SelectOptionDict,
@@ -18,7 +17,6 @@ from homeassistant.helpers.selector import (
 )
 
 from .const import CONF_CHAT_MODEL, DOMAIN
-from .coordinator import model_alias
 
 if TYPE_CHECKING:
     from . import ConfigurableLLMConfigEntry
@@ -42,7 +40,7 @@ class ModelDeprecatedRepairFlow(RepairsFlow):
 
     async def async_step_init(
         self, user_input: dict[str, str] | None = None
-    ) -> RepairsFlowResult:
+    ) -> FlowResult:
         """Handle the steps of a fix flow."""
         if user_input and user_input.get(CONF_CHAT_MODEL):
             self._async_update_current_subentry(user_input)
@@ -52,25 +50,22 @@ class ModelDeprecatedRepairFlow(RepairsFlow):
             return self.async_create_entry(data={})
 
         entry, subentry, model = target
+        provider = entry.runtime_data.provider
         if self._model_list_cache is None:
             self._model_list_cache = {}
         if entry.entry_id in self._model_list_cache:
             model_list = self._model_list_cache[entry.entry_id]
         else:
-            client = entry.runtime_data.client
             model_list = [
                 model_option
-                for model_option in await self.get_model_list(client)
-                if model_option["value"] not in DEPRECATED_MODELS
+                for model_option in await self.get_model_list(
+                    provider, entry.runtime_data.client
+                )
+                if not provider.is_model_deprecated(model_option["value"])
             ]
             self._model_list_cache[entry.entry_id] = model_list
 
-        if "opus" in model:
-            family = "claude-opus"
-        elif "sonnet" in model:
-            family = "claude-sonnet"
-        else:
-            family = "claude-haiku"
+        family = provider.suggest_replacement_family(model)
 
         suggested_model = next(
             (
@@ -103,22 +98,22 @@ class ModelDeprecatedRepairFlow(RepairsFlow):
                 "model": model,
                 "subentry_name": subentry.title,
                 "subentry_type": self._format_subentry_type(subentry.subentry_type),
-                "retirement_date": DEPRECATED_MODELS[model],
+                "retirement_date": provider.deprecated_models().get(model, ""),
             },
         )
 
     async def get_model_list(
-        self, client: anthropic.AsyncAnthropic
+        self, provider: Any, client: Any
     ) -> list[SelectOptionDict]:
-        """Get list of available models."""
+        """Get list of available models from a provider's client."""
         try:
-            models = (await client.models.list(timeout=10.0)).data
-        except anthropic.AnthropicError:
+            models = await provider.async_list_models(client)
+        except Exception:  # noqa: BLE001 - mirror upstream: degrade to empty list
             models = []
         return [
             SelectOptionDict(
                 label=model_info.display_name,
-                value=model_alias(model_info.id),
+                value=provider.model_alias(model_info.id),
             )
             for model_info in models
         ]
@@ -130,7 +125,7 @@ class ModelDeprecatedRepairFlow(RepairsFlow):
                 continue
             for subentry in entry.subentries.values():
                 model = subentry.data.get(CONF_CHAT_MODEL)
-                if model and model in DEPRECATED_MODELS:
+                if model and entry.runtime_data.provider.is_model_deprecated(model):
                     yield entry.entry_id, subentry.subentry_id
 
     async def _async_next_target(
@@ -157,7 +152,7 @@ class ModelDeprecatedRepairFlow(RepairsFlow):
                 continue
 
             model = subentry.data.get(CONF_CHAT_MODEL)
-            if not model or model not in DEPRECATED_MODELS:
+            if not model or not entry.runtime_data.provider.is_model_deprecated(model):
                 continue
 
             self._current_entry_id = entry_id

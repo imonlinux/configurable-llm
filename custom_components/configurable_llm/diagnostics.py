@@ -2,14 +2,13 @@
 
 from typing import TYPE_CHECKING, Any
 
-from anthropic import __title__, __version__
-
 from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.const import CONF_API_KEY, CONF_PROMPT
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
 from .const import (
+    CONF_PROTOCOL,
     CONF_WEB_SEARCH_CITY,
     CONF_WEB_SEARCH_COUNTRY,
     CONF_WEB_SEARCH_REGION,
@@ -34,9 +33,15 @@ async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: "ConfigurableLLMConfigEntry"
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
+    provider_metadata = (
+        entry.runtime_data.provider.diagnostics_metadata()
+        if entry.runtime_data
+        else {}
+    )
 
     return {
-        "client": f"{__title__}=={__version__}",
+        **provider_metadata,
+        "protocol": entry.data.get(CONF_PROTOCOL),
         "title": entry.title,
         "entry_id": entry.entry_id,
         "entry_version": f"{entry.version}.{entry.minor_version}",
