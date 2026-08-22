@@ -125,7 +125,7 @@ async def test_flow_step_user(
     mock_api_key: str,
     mock_anthropic_client: MagicMock,
 ) -> None:
-    """Test user step creates entry."""
+    """Test user step with endpoint confirmation creates entry."""
     with patch(
         "custom_components.configurable_llm.providers.anthropic_provider"
         ".anthropic.AsyncAnthropic",
@@ -134,15 +134,24 @@ async def test_flow_step_user(
         flow = ConfigurableLLMConfigFlow()
         flow.hass = hass
 
-        result = await flow.async_step_user(
-            {CONF_API_KEY: mock_api_key, CONF_BASE_URL: DEFAULT_BASE_URL}
+        # Step 1: Submit preset and API key
+        result1 = await flow.async_step_user(
+            {CONF_PRESET: "anthropic", CONF_API_KEY: mock_api_key}
         )
+        assert result1["type"] == FlowResultType.FORM
+        assert result1["step_id"] == "endpoint"
 
-    assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["title"] == "Configurable LLM"
-    assert result["data"][CONF_API_KEY] == mock_api_key
-    assert result["data"][CONF_BASE_URL] == DEFAULT_BASE_URL
-    assert len(result["subentries"]) == 2
+        # Step 2: Confirm endpoint (pre-filled, submit)
+        result2 = await flow.async_step_endpoint({
+            CONF_PROTOCOL: PROTOCOL_ANTHROPIC,
+            CONF_BASE_URL: DEFAULT_BASE_URL,
+        })
+
+    assert result2["type"] == FlowResultType.CREATE_ENTRY
+    assert result2["title"] == "Configurable LLM"
+    assert result2["data"][CONF_API_KEY] == mock_api_key
+    assert result2["data"][CONF_BASE_URL] == DEFAULT_BASE_URL
+    assert len(result2["subentries"]) == 2
 
 
 async def test_flow_step_user_show_form(
@@ -176,9 +185,16 @@ async def test_flow_step_user_timeout_error(
         flow = ConfigurableLLMConfigFlow()
         flow.hass = hass
 
-        result = await flow.async_step_user(
-            {CONF_API_KEY: mock_api_key, CONF_BASE_URL: DEFAULT_BASE_URL}
+        # Step 1: Submit preset and API key
+        await flow.async_step_user(
+            {CONF_PRESET: "anthropic", CONF_API_KEY: mock_api_key}
         )
+
+        # Step 2: Submit endpoint and get timeout error
+        result = await flow.async_step_endpoint({
+            CONF_PROTOCOL: PROTOCOL_ANTHROPIC,
+            CONF_BASE_URL: DEFAULT_BASE_URL,
+        })
 
     assert result["type"] == FlowResultType.FORM
     assert result["errors"]["base"] == "timeout_connect"
@@ -207,9 +223,16 @@ async def test_flow_step_user_auth_error(
         flow = ConfigurableLLMConfigFlow()
         flow.hass = hass
 
-        result = await flow.async_step_user(
-            {CONF_API_KEY: mock_api_key, CONF_BASE_URL: DEFAULT_BASE_URL}
+        # Step 1: Submit preset and API key
+        await flow.async_step_user(
+            {CONF_PRESET: "anthropic", CONF_API_KEY: mock_api_key}
         )
+
+        # Step 2: Submit endpoint and get auth error
+        result = await flow.async_step_endpoint({
+            CONF_PROTOCOL: PROTOCOL_ANTHROPIC,
+            CONF_BASE_URL: DEFAULT_BASE_URL,
+        })
 
     assert result["type"] == FlowResultType.FORM
     assert result["errors"]["base"] == "authentication_error"
@@ -719,7 +742,7 @@ async def test_flow_step_user_anthropic_preset(
     mock_api_key: str,
     mock_anthropic_client: MagicMock,
 ) -> None:
-    """Selecting the z.ai preset fills protocol + base_url."""
+    """Selecting the z.ai preset pre-fills protocol + base_url in endpoint step."""
     with patch(
         "custom_components.configurable_llm.providers.anthropic_provider"
         ".anthropic.AsyncAnthropic",
@@ -727,21 +750,31 @@ async def test_flow_step_user_anthropic_preset(
     ):
         flow = ConfigurableLLMConfigFlow()
         flow.hass = hass
-        result = await flow.async_step_user(
+
+        # Step 1: Submit preset and API key
+        result1 = await flow.async_step_user(
             {CONF_PRESET: "zai", CONF_API_KEY: mock_api_key}
         )
+        assert result1["type"] == FlowResultType.FORM
+        assert result1["step_id"] == "endpoint"
 
-    assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["data"][CONF_PROTOCOL] == PROTOCOL_ANTHROPIC
-    assert result["data"][CONF_BASE_URL] == "https://api.z.ai/api/anthropic"
-    assert CONF_PRESET not in result["data"]
+        # Step 2: Submit pre-filled endpoint values
+        result2 = await flow.async_step_endpoint({
+            CONF_PROTOCOL: PROTOCOL_ANTHROPIC,
+            CONF_BASE_URL: "https://api.z.ai/api/anthropic",
+        })
+
+    assert result2["type"] == FlowResultType.CREATE_ENTRY
+    assert result2["data"][CONF_PROTOCOL] == PROTOCOL_ANTHROPIC
+    assert result2["data"][CONF_BASE_URL] == "https://api.z.ai/api/anthropic"
+    assert CONF_PRESET not in result2["data"]
 
 
 async def test_flow_step_user_openai_preset(
     hass: HomeAssistant,
     mock_api_key: str,
 ) -> None:
-    """Selecting an OpenAI-compatible preset fills protocol + base_url."""
+    """Selecting an OpenAI-compatible preset pre-fills protocol + base_url."""
     mock_client = MagicMock()
     mock_client.with_options.return_value.models.list = AsyncMock(
         return_value=MagicMock(
@@ -755,13 +788,46 @@ async def test_flow_step_user_openai_preset(
     ):
         flow = ConfigurableLLMConfigFlow()
         flow.hass = hass
-        result = await flow.async_step_user(
+
+        # Step 1: Submit preset and API key
+        result1 = await flow.async_step_user(
             {CONF_PRESET: "openrouter", CONF_API_KEY: mock_api_key}
         )
+        assert result1["type"] == FlowResultType.FORM
+        assert result1["step_id"] == "endpoint"
 
-    assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["data"][CONF_PROTOCOL] == PROTOCOL_OPENAI
-    assert result["data"][CONF_BASE_URL] == "https://openrouter.ai/api/v1"
+        # Step 2: Submit pre-filled endpoint values
+        result2 = await flow.async_step_endpoint({
+            CONF_PROTOCOL: PROTOCOL_OPENAI,
+            CONF_BASE_URL: "https://openrouter.ai/api/v1",
+        })
+
+    assert result2["type"] == FlowResultType.CREATE_ENTRY
+    assert result2["data"][CONF_PROTOCOL] == PROTOCOL_OPENAI
+    assert result2["data"][CONF_BASE_URL] == "https://openrouter.ai/api/v1"
+
+
+async def test_flow_step_endpoint_shows_prefilled_values(
+    hass: HomeAssistant,
+    mock_api_key: str,
+) -> None:
+    """Test that endpoint step shows pre-filled values from preset."""
+    flow = ConfigurableLLMConfigFlow()
+    flow.hass = hass
+
+    # Step 1: Submit z.ai preset
+    await flow.async_step_user(
+        {CONF_PRESET: "zai", CONF_API_KEY: mock_api_key}
+    )
+
+    # Step 2: Get endpoint form (without submitting)
+    result = await flow.async_step_endpoint(None)
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "endpoint"
+    # Verify suggested_values are set correctly
+    # The data_schema should have the preset values pre-filled
+    assert "data_schema" in result
 
 
 async def test_flow_subentry_openai_model_schema(

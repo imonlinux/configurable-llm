@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.0-beta.6
+
+Pre-release: two-step configuration flow with preset endpoint preview.
+
+### Changed
+
+- **Configuration flow split into two steps** — Setup now separates preset/API key entry from endpoint confirmation:
+  - Step 1: Select provider preset and enter API key
+  - Step 2: Review and confirm pre-filled protocol and base URL (editable)
+- **Config flow minor version bumped to 2** — Triggers reconfiguration for existing entries
+
+### Fixed
+
+- **Preset values now visible before submission** — When selecting a provider preset (z.ai, OpenRouter, Ollama, etc.), the corresponding protocol and base URL are now displayed in a confirmation step before the entry is created, allowing users to verify and edit the values
+- **Reauth bypasses endpoint step** — Reauthentication flow streamlined to single step (API key only), preserving existing entry endpoint
+
 ## 1.2.0-beta.5
 
 Pre-release: HACS compliance and UX improvements.

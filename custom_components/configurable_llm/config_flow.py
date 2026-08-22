@@ -104,6 +104,7 @@ def _preset_options() -> list[SelectOptionDict]:
     ]
 
 
+# Step 1: Preset and API key
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_PRESET, default=PROTOCOL_ANTHROPIC): SelectSelector(
@@ -113,15 +114,21 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
                 mode=SelectSelectorMode.DROPDOWN,
             )
         ),
-        vol.Optional(CONF_PROTOCOL, default=DEFAULT_PROTOCOL): SelectSelector(
+        vol.Required(CONF_API_KEY): str,
+    }
+)
+
+# Step 2: Endpoint confirmation with pre-filled values
+STEP_ENDPOINT_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_PROTOCOL): SelectSelector(
             SelectSelectorConfig(
                 options=_PROTOCOL_OPTIONS,
                 translation_key=CONF_PROTOCOL,
                 mode=SelectSelectorMode.DROPDOWN,
             )
         ),
-        vol.Required(CONF_API_KEY): str,
-        vol.Optional(CONF_BASE_URL): str,
+        vol.Required(CONF_BASE_URL): str,
     }
 )
 
@@ -163,41 +170,86 @@ class ConfigurableLLMConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Configurable LLM."""
 
     VERSION = 2
-    MINOR_VERSION = 1
+    MINOR_VERSION = 2
+
+    # Store initial input for use in endpoint step
+    _initial_input: dict[str, Any] = {}
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Handle the initial step."""
+        """Handle the initial step - preset selection and API key."""
+        if user_input is not None:
+            # For reauth, validate directly with existing entry's endpoint
+            if self.source == SOURCE_REAUTH:
+                existing_entry = self._get_reauth_entry()
+                full_input = {
+                    **existing_entry.data,
+                    CONF_API_KEY: user_input[CONF_API_KEY],
+                }
+                errors: dict[str, str] = {}
+                try:
+                    await validate_input(self.hass, full_input)
+                except ConfigEntryAuthFailed:
+                    errors["base"] = "authentication_error"
+                except TimeoutError:
+                    errors["base"] = "timeout_connect"
+                except UpdateFailed:
+                    errors["base"] = "cannot_connect"
+                except Exception:
+                    _LOGGER.exception("Unexpected exception")
+                    errors["base"] = "unknown"
+                else:
+                    return self.async_update_reload_and_abort(
+                        existing_entry, data_updates={CONF_API_KEY: full_input[CONF_API_KEY]}
+                    )
+                # On error, re-show the reauth form
+                return self.async_show_form(
+                    step_id="reauth_confirm",
+                    data_schema=STEP_REAUTH_DATA_SCHEMA,
+                    errors=errors or None,
+                    description_placeholders={"name": existing_entry.title},
+                )
+
+            # For new setup, store and proceed to endpoint step
+            self._initial_input = user_input.copy()
+            return await self.async_step_endpoint()
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=STEP_USER_DATA_SCHEMA,
+        )
+
+    async def async_step_endpoint(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle endpoint confirmation - pre-filled from preset, editable."""
         errors: dict[str, str] = {}
 
-        if user_input is not None:
-            # On reauth the existing entry already has base_url/protocol; merge
-            # them in so validation runs against the same endpoint. Do NOT apply
-            # preset/protocol/base_url mutation in reauth — the entry's values
-            # are authoritative and we only accept a new api_key.
-            if self.source == SOURCE_REAUTH:
-                user_input = {
-                    **self._get_reauth_entry().data,
-                    **user_input,
-                }
-            else:
-                # A preset fills protocol + base_url; "custom" uses the explicit
-                # protocol selector and the typed base_url.
-                preset_value = user_input.get(CONF_PRESET) or PRESET_CUSTOM
-                preset = get_preset(preset_value)
-                if preset and preset_value != PRESET_CUSTOM:
-                    user_input[CONF_PROTOCOL] = cast(str, preset["protocol"])
-                    user_input[CONF_BASE_URL] = cast(str, preset["base_url"])
-                user_input.setdefault(CONF_PROTOCOL, DEFAULT_PROTOCOL)
-                if not user_input.get(CONF_BASE_URL):
-                    user_input[CONF_BASE_URL] = get_provider(
-                        user_input[CONF_PROTOCOL]
-                    ).default_base_url
+        # Get preset values from initial input
+        preset_value = self._initial_input.get(CONF_PRESET) or PRESET_CUSTOM
+        preset = get_preset(preset_value)
 
-            self._async_abort_entries_match({CONF_API_KEY: user_input[CONF_API_KEY]})
+        # Build the full data with preset values or defaults
+        if preset and preset_value != PRESET_CUSTOM:
+            # Preset selected: use preset values
+            default_protocol = preset["protocol"]
+            default_base_url = preset["base_url"]
+        else:
+            # Custom: use provider defaults
+            default_protocol = DEFAULT_PROTOCOL
+            default_base_url = DEFAULT_BASE_URL
+
+        if user_input is not None:
+            # Merge initial input (preset, API key) with endpoint step input
+            full_input = {
+                **self._initial_input,
+                **user_input,
+            }
+
+            self._async_abort_entries_match({CONF_API_KEY: full_input[CONF_API_KEY]})
             try:
-                await validate_input(self.hass, user_input)
+                await validate_input(self.hass, full_input)
             except ConfigEntryAuthFailed:
                 errors["base"] = "authentication_error"
             except TimeoutError:
@@ -210,17 +262,11 @@ class ConfigurableLLMConfigFlow(ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
             else:
-                # preset is a setup convenience, not persisted on the entry.
-                user_input.pop(CONF_PRESET, None)
-                if self.source == SOURCE_REAUTH:
-                    user_input.pop(CONF_PROTOCOL, None)
-                    user_input.pop(CONF_BASE_URL, None)
-                    return self.async_update_reload_and_abort(
-                        self._get_reauth_entry(), data_updates=user_input
-                    )
+                # Preset is a setup convenience, not persisted
+                full_input.pop(CONF_PRESET, None)
                 return self.async_create_entry(
                     title="Configurable LLM",
-                    data=user_input,
+                    data=full_input,
                     subentries=[
                         {
                             "subentry_type": "conversation",
@@ -237,18 +283,16 @@ class ConfigurableLLMConfigFlow(ConfigFlow, domain=DOMAIN):
                     ],
                 )
 
-        # On validation error, re-show the appropriate form: reauth_confirm for
-        # reauth (only api_key), user for initial setup.
-        if self.source == SOURCE_REAUTH:
-            return self.async_show_form(
-                step_id="reauth_confirm",
-                data_schema=STEP_REAUTH_DATA_SCHEMA,
-                errors=errors or None,
-                description_placeholders={"name": self._get_reauth_entry().title},
-            )
+        # Show form with pre-filled values
         return self.async_show_form(
-            step_id="user",
-            data_schema=STEP_USER_DATA_SCHEMA,
+            step_id="endpoint",
+            data_schema=self.add_suggested_values_to_schema(
+                STEP_ENDPOINT_DATA_SCHEMA,
+                {
+                    CONF_PROTOCOL: default_protocol,
+                    CONF_BASE_URL: default_base_url,
+                },
+            ),
             errors=errors or None,
         )
 
