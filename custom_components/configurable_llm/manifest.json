@@ -20,5 +20,5 @@
     "anthropic>=0.108.0,<0.109",
     "openai>=2.45.0"
   ],
-  "version": "1.2.0-beta.7"
+  "version": "1.2.0"
 }

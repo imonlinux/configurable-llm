@@ -49,58 +49,73 @@ Restart Home Assistant.
 
 ## Setup
 
-After installation, add the integration:
+After installation, add the integration through the two-step configuration flow:
+
+### Step 1: Provider and API Key
 
 1. Go to **Settings → Devices & Services → Add Integration**
 2. Search for **Configurable LLM**
-3. Fill in the form:
+3. Select your provider preset and enter your API key:
 
-   ![Setup form showing provider preset, API key, and API base URL fields](docs/images/setup-form.png)
+   ![Step 1: Provider selection and API key](docs/images/1.connection.png)
 
    - **Provider** — choose a preset (Anthropic, z.ai, OpenAI, OpenRouter, Groq, Ollama, LM Studio) or Custom
-   - **API protocol** — auto-selected by provider; can be overridden with Custom
    - **API key** — your provider's API key
-   - **API base URL** — auto-filled by preset; enter manually for Custom
+
+Click **Next** to proceed to endpoint confirmation.
+
+### Step 2: Confirm API Endpoint
+
+The second step shows the protocol and base URL pre-filled from your provider selection:
+
+   ![Step 2: Endpoint confirmation with pre-filled values](docs/images/2.confirm.png)
+
+   - **API protocol** — auto-selected by provider; can be edited for Custom
+   - **API base URL** — auto-filled by preset; edit for self-hosted or custom endpoints
+
+Review the values and click **Submit** to create the integration.
 
 For provider-specific URLs and API key formats, see [docs/PROVIDERS.md](docs/PROVIDERS.md).
 
-Once the form is submitted the integration creates two default subentries:
+### Name Your Conversation Agent
 
-- A **conversation agent** named "LLM conversation"
-- An **AI task** named "LLM AI Task"
+After successful setup, you'll be prompted to name your conversation agent:
 
-Each subentry can be configured independently from the integration's card under **Settings → Devices & Services**.
+   ![Name your conversation agent](docs/images/3.name_assign.png)
+
+Once configured, the integration appears under **Settings → Devices & Services**:
+
+   ![Integration card showing services and options](docs/images/4.services.png)
 
 ## Configuration
 
 The integration is configured entirely through the Home Assistant UI — there is no YAML configuration.
 
-Each conversation agent or AI task subentry has two configuration modes:
+Each conversation agent or AI task can be configured independently from the integration's card. Click **Configure** on the integration or any subentry to access settings.
 
-- **Recommended model settings** (default) — uses sensible defaults for the selected protocol. No further configuration needed.
-- **Custom settings** — turn off "Recommended model settings" to access the full set of options below.
-
-### Basic settings
+### Basic Settings
 
 | Field | Description |
 |---|---|
 | Name | Display name for this conversation agent or AI task |
 | Instructions | System prompt sent to the model (Jinja templating supported) |
 | Control Home Assistant | Which Home Assistant LLM APIs the agent can use to control devices |
+| Recommended model settings | Uses sensible defaults; turn off for custom configuration |
 
-![Basic form showing Name, Instructions, Assist, and Recommended model settings options](docs/images/basic-form.png)
+![Basic settings form](docs/images/5.basic_settings.png)
 
-### Advanced settings
+### Advanced Settings (Custom Mode)
+
+When **Recommended model settings** is disabled, you can configure:
 
 | Field | Description |
 |---|---|
 | Model | The model ID to use. A list is populated from the provider's `/v1/models` endpoint if available; otherwise you can type a model ID directly. |
 | Caching strategy | Disabled, System prompt, or Full (Anthropic protocol) |
 
-![Advanced settings form showing Model and Caching strategy](docs/images/advanced-form.png)
+![Advanced settings form](docs/images/6.advanced_settings.png)
 
-### Anthropic protocol options
-
+### Anthropic Protocol Options
 
 | Field | Description |
 |---|---|
@@ -114,9 +129,9 @@ Each conversation agent or AI task subentry has two configuration modes:
 | Maximum web fetches | Cap on URL fetches per response |
 | Tool search | Discover Home Assistant tools on demand instead of loading them all upfront |
 
-![Model-specific options form showing showing Maximum tokens, Code execution, Web search, Maximum web searches, Include home location, Web fetch, Maximum web fetches, and Tool search options](docs/images/model-options-form.png)
+![Model-specific options](docs/images/7.model_specific.png)
 
-### OpenAI Chat Completions protocol options
+### OpenAI Chat Completions Protocol Options
 
 | Field | Description |
 |---|---|
@@ -125,11 +140,11 @@ Each conversation agent or AI task subentry has two configuration modes:
 | Reasoning effort | Effort level for reasoning models (none/low/medium/high) |
 | Maximum tokens | Cap on the length of each response |
 
-The Anthropic-protocol tool features (code execution, web search, web fetch, tool search) are not available on the OpenAI Chat Completions rail — those options only appear on Anthropic-protocol subentries. Home Assistant tool calling (device control) works on both protocols, subject to the model and server supporting function calls.
+The Anthropic-protocol tool features (code execution, web search, web fetch, tool search) are not available on the OpenAI Chat Completions rail. Home Assistant tool calling (device control) works on both protocols, subject to the model and server supporting function calls.
 
 > **Note:** OpenAI-hosted reasoning models (o-series, gpt-5) are not supported on this rail. They reject `max_tokens` and non-default temperature. Use chat models (e.g., `gpt-4o-mini`) or compatible/local servers.
 
-## Provider presets
+## Provider Presets
 
 The following presets are available at setup:
 
@@ -145,6 +160,18 @@ The following presets are available at setup:
 | Custom | Both | (enter manually) |
 
 Choose **Custom** to manually specify both the protocol and base URL for unsupported providers.
+
+## Testing Your Setup
+
+After configuration, test your conversation agent:
+
+1. Go to **Settings → Devices & Services → Configurable LLM**
+2. Click on your conversation agent subentry
+3. Scroll down to **Developer tools**
+4. Click **Try conversation**
+5. Ask a test question to verify the connection
+
+![Testing the conversation agent](docs/images/9.validation.png)
 
 ## Updating
 
@@ -177,11 +204,11 @@ Restart Home Assistant.
 Check the Home Assistant log (`Settings → System → Logs`). The most common causes:
 
 - **HA version too old** — this integration requires HA 2025.8 or newer because it uses AI task entities and config subentries
-- **SDK install failed** — the integration requires `anthropic>=0.108.0` and `openai>=2.45.0`; pip needs network access on first load
+- **SDK install failed** — the integration requires `anthropic>=0.108.0,<0.109` and `openai>=2.45.0`; pip needs network access on first load
 
 ### Authentication fails
 
-- The form treats `sk-ant-...`-style keys as the canonical Anthropic format, but the field accepts any string. The provider's authentication is what validates the key, so check the key against your provider's docs.
+- The form accepts any API key string. The provider's authentication is what validates the key, so check the key against your provider's docs.
 - For local servers that don't authenticate, supply any non-empty string in the API key field.
 
 ### "Invalid API endpoint" on the setup form
@@ -210,7 +237,7 @@ logger:
     custom_components.configurable_llm: debug
 ```
 
-## Compatibility notes
+## Compatibility Notes
 
 | Capability | Anthropic Protocol | OpenAI Protocol |
 |---|---|---|

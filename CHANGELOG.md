@@ -2,6 +2,30 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.0
+
+First stable release with OpenAI Chat Completions support and two-step configuration flow.
+
+### Added
+
+- **OpenAI Chat Completions protocol** — Full support for OpenAI-compatible endpoints including OpenAI, OpenRouter, Groq, Together, Ollama, LM Studio, vLLM, llama.cpp, and self-hosted servers
+- **Provider preset picker** — Choose from pre-configured providers (Anthropic, z.ai, OpenAI, OpenRouter, Groq, Ollama, LM Studio) or Custom at setup
+- **Two-step configuration flow** — Step 1: select provider and enter API key; Step 2: confirm pre-filled protocol and base URL
+- **Per-protocol options** — Anthropic entries get thinking/prompt caching/tool features; OpenAI entries get temperature/top P/reasoning effort
+- **Configurable base URL** — Support for custom and self-hosted LLM endpoints
+
+### Changed
+
+- **Config flow minor version 2** — Existing entries migrated automatically with Anthropic protocol stamped
+- **Anthropic dependency capped** — `anthropic>=0.108.0,<0.109` to guard against untested SDK versions
+- **Translation files synchronized** — `strings.json` and `translations/en.json` kept in parity
+
+### Fixed
+
+- **Endpoint step translations** — Second setup step now displays with proper title, description, and field labels
+- **Reauthentication preserves endpoint** — Reauth validates against existing entry's protocol/base URL, not preset defaults
+- **Preset values visible before submission** — Protocol and base URL shown for review/edit before entry creation
+
 ## 1.2.0-beta.7
 
 Pre-release: bug fixes and hygiene for two-step configuration flow.
