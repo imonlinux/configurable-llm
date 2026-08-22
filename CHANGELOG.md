@@ -2,135 +2,23 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 1.2.0
-
-First stable release with OpenAI Chat Completions support and two-step configuration flow.
-
-### Added
-
-- **OpenAI Chat Completions protocol** — Full support for OpenAI-compatible endpoints including OpenAI, OpenRouter, Groq, Together, Ollama, LM Studio, vLLM, llama.cpp, and self-hosted servers
-- **Provider preset picker** — Choose from pre-configured providers (Anthropic, z.ai, OpenAI, OpenRouter, Groq, Ollama, LM Studio) or Custom at setup
-- **Two-step configuration flow** — Step 1: select provider and enter API key; Step 2: confirm pre-filled protocol and base URL
-- **Per-protocol options** — Anthropic entries get thinking/prompt caching/tool features; OpenAI entries get temperature/top P/reasoning effort
-- **Configurable base URL** — Support for custom and self-hosted LLM endpoints
-
-### Changed
-
-- **Config flow minor version 2** — Existing entries migrated automatically with Anthropic protocol stamped
-- **Anthropic dependency capped** — `anthropic>=0.108.0,<0.109` to guard against untested SDK versions
-- **Translation files synchronized** — `strings.json` and `translations/en.json` kept in parity
-
-### Fixed
-
-- **Endpoint step translations** — Second setup step now displays with proper title, description, and field labels
-- **Reauthentication preserves endpoint** — Reauth validates against existing entry's protocol/base URL, not preset defaults
-- **Preset values visible before submission** — Protocol and base URL shown for review/edit before entry creation
-
-## 1.2.0-beta.7
-
-Pre-release: bug fixes and hygiene for two-step configuration flow.
-
-### Fixed
-
-- **Endpoint step now has full translations** — Added `endpoint` step title, description, and field descriptions to `strings.json` and `translations/en.json`. The second setup step now displays "Confirm API endpoint" with proper field labels instead of rendering without context.
-- **Translation files synchronized** — `strings.json` and `translations/en.json` are now byte-parity, preventing drift between developer source and what users see in the UI.
-- **Anthropic dependency now capped** — Changed `anthropic>=0.108.0` to `anthropic>=0.108.0,<0.109` to guard against untested newer SDK versions while still allowing patch updates within the 0.108.x series.
-- **Removed dead PROVIDER_KEY_FORMATS constant** — Cleaned up unreferenced constant from `const.py`.
-- **Fixed mutable class-attribute default** — Changed `_initial_input` to annotation-only declaration in `config_flow.py`.
-
-## 1.2.0-beta.6
-
-Pre-release: two-step configuration flow with preset endpoint preview.
-
-### Changed
-
-- **Configuration flow split into two steps** — Setup now separates preset/API key entry from endpoint confirmation:
-  - Step 1: Select provider preset and enter API key
-  - Step 2: Review and confirm pre-filled protocol and base URL (editable)
-- **Config flow minor version bumped to 2** — Triggers reconfiguration for existing entries
-
-### Fixed
-
-- **Preset values now visible before submission** — When selecting a provider preset (z.ai, OpenRouter, Ollama, etc.), the corresponding protocol and base URL are now displayed in a confirmation step before the entry is created, allowing users to verify and edit the values
-- **Reauth bypasses endpoint step** — Reauthentication flow streamlined to single step (API key only), preserving existing entry endpoint
-
-## 1.2.0-beta.5
-
-Pre-release: HACS compliance and UX improvements.
-
-### Changed
-
-- **Dependency version constraints for HACS compliance** — Changed `anthropic==0.108.0` to `anthropic>=0.108.0` and `openai==2.45.0` to `openai>=2.45.0` in manifest.json. Uses minimum version constraints instead of exact pins to avoid forcing Home Assistant core to downgrade packages it already ships. Maintains compatibility while allowing HA to manage its own dependency tree.
-
-### Added
-
-- **Enhanced configuration form UX** — Added helpful descriptions to all configuration fields:
-  - Provider picker now explains preset selection and when to use Custom
-  - API key field shows expected format for each protocol (sk-ant-..., sk-...)
-  - Recommended mode toggle explains what it simplifies
-  - Temperature, Top P, and Thinking Budget fields now include clear explanations of their purpose and valid ranges
-  - Model selection includes helpful labels (e.g., "- Latest, most capable") to distinguish similar models
-- **Model description labels** — Each model in the selector now includes a brief description highlighting its key characteristics (speed, capability, cost-effectiveness) to help users choose the right model
-- **Inline validation hints** — Thinking Budget field now includes inline text explaining the constraint relationship with Maximum tokens
-- **Organized model options schema** — Anthropic model options form now has clear section separators for Response Options, Extended Thinking, Web Capabilities, and Tool Options
-
-### Fixed
-
-- **Test compatibility with Python 3.13** — Updated phantom-python-tester Docker image to Python 3.13-slim for compatibility with pytest-homeassistant-custom-component==0.13.270
-- **Test assertion for model labels** — Updated test_flow_get_model_list to check for prefix match instead of exact equality to accommodate new description labels
-
-## 1.2.0-beta.4
-
-Pre-release: Home Assistant 2026.8 dependency compatibility update.
+## 1.1.4
 
 ### Changed
 
 - Updated `anthropic` dependency from 0.96.0 to 0.108.0 for Home Assistant 2026.8 compatibility
-- Updated `openai` dependency from 2.21.0 to 2.45.0 for Home Assistant 2026.8 compatibility
+- Added `openai==2.45.0` as a dependency (previously implicit via Home Assistant)
 
-## 1.2.0-beta.3
-
-Pre-release: bug fixes for streaming, reauthentication, and provider defaults.
+## 1.1.3
 
 ### Fixed
 
-- **Usage metrics now included with streaming responses ending in usage-on-content chunks** — streaming responses that end with `usage-on-content` chunks now properly return `ChatCompletion.usage` metadata. Previously, usage was omitted for these responses.
-- **Provider get_default_model() override available** — the `Provider` base class now exposes a `get_default_model()` method that custom providers can override to specify their own default instead of using the Anthropic default.
-- **Reauthentication preserves entry endpoint** — during reauth, the entry's `protocol` and `base_url` are now preserved and used for validation instead of preset defaults. Retry after failed validation continues using the entry's endpoint; no preset key is introduced.
-- **Streaming chunk handling improved** — better handling of streaming responses with usage-on-content chunks for proper token accounting and response completion.
-
-## 1.2.0-beta.2
-
-Pre-release: code-review follow-up to 1.2.0-beta.1.
-
-### Fixed
-
-- **Provider defaults are now authoritative per protocol** — the base entity no longer merges the Anthropic `DEFAULT` for every protocol, nor falls back to a Claude model id on OpenAI entries. Each provider exposes a `defaults()` method (Anthropic → `DEFAULT`, OpenAI → `DEFAULT_OPENAI`), so an OpenAI recommended-mode subentry now correctly gets `gpt-4o-mini` / temperature / top P / reasoning-effort defaults, and an OpenAI entry with an empty `/v1/models` no longer hands the endpoint a Claude id (which would `400`). Removes the last cross-protocol constant coupling from the entity. (Code review items 1 & 2.)
+- **Integration failed to load on Home Assistant 2025.8** — Added `from __future__ import annotations` to `entity.py`. The module used `conversation.ToolResultContentDeltaDict` in type annotations, but that symbol does not exist in Home Assistant 2025.8 (the integration's minimum supported version); without deferred annotations it was evaluated at import time and raised `AttributeError`, preventing the conversation and AI Task platforms from loading. This is the same class of fix applied to `ai_task.py` in 1.1.2.
+- **Config flow help text cleaned up** — Reworded the base URL field description to remove embedded example URLs (which are not permitted in translation strings), pointing to the documentation for provider-specific URLs instead. Provider examples remain available in `docs/PROVIDERS.md`.
 
 ### Changed
 
-- Documented that OpenAI-hosted reasoning models (o-series, gpt-5) are unsupported on this rail — they reject `max_tokens` and non-default temperature. Use chat models (e.g. `gpt-4o-mini`) or compatible/local servers. (Code review item 3.)
-- Clarified that the OpenAI stream transformer's `output_tool` parameter is intentionally unused (structured output is native via `response_format`). (Code review item 5.)
-
-## 1.2.0-beta.1
-
-Pre-release: provider-pluggable architecture with OpenAI Chat Completions support. Stable 1.2.0 will follow after testing.
-
-### Added
-
-- **OpenAI Chat Completions protocol** — target any OpenAI-compatible endpoint (`/v1/chat/completions`): OpenAI, OpenRouter, Groq, Together, Ollama, LM Studio, vLLM, llama.cpp, Mistral, and self-hosted servers. (Not OpenAI's Responses API.)
-- **Provider-pluggable architecture** behind a new `LLMProvider` interface; the Anthropic path is unchanged (behavior-preserving refactor).
-- **Provider preset picker** at setup (with a Custom option). OpenAI entries expose temperature, top P, and reasoning effort.
-
-### Changed
-
-- `openai==2.21.0` added to requirements; repairs and diagnostics routed through the active provider; config entries migrate v1 → v2 (existing entries gain `protocol=anthropic`).
-
-### Fixed
-
-- Deprecated-model repair flow failed to load on Home Assistant 2025.8.1 (`RepairsFlowResult` is not exported); now uses `FlowResult`.
-
-> Note: a `1.1.3` release was referenced in earlier notes but was never published; `1.2.0` follows the shipped `1.1.2`.
+- Added a Hassfest validation workflow and updated GitHub Actions to current versions (Node 24 compatible). CI now runs the test suite, HACS validation, and Hassfest. Repository/CI changes only; not part of the installed integration.
 
 ## 1.1.2
 
