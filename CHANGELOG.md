@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.1
+
+Compatibility release for Home Assistant 2026.9.
+
+### Fixed
+
+- **Home Assistant 2026.9 compatibility** — HA 2026.9 removed `voluptuous-openapi` from the core environment (HA migrated its LLM tooling to `probatio`), so the integration failed to set up with `ModuleNotFoundError: No module named 'voluptuous_openapi'`. The package is now declared in `manifest.json` requirements and installed automatically. HA 2026.9 also switched its serializer convention to probatio's `UNSUPPORTED` sentinel; a compatibility shim (`adapt_custom_serializer`) translates HA's serializer contract into `voluptuous_openapi`'s on every supported HA version, keeping tool schemas and structured output rendering correctly.
+
 ## 1.2.0
 
 First stable release with OpenAI Chat Completions support and two-step configuration flow.

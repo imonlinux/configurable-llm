@@ -25,6 +25,14 @@ pytest-timeout>=2.3.0
 anthropic==0.108.0
 openai==2.45.0
 
+# voluptuous-openapi is declared in manifest.json so the integration is
+# self-contained on Home Assistant >= 2026.9, which removed it from the core
+# environment (HA migrated to probatio). The integration's own compatibility
+# shim (providers/base.py adapt_custom_serializer) supports both the 0.1.x
+# sentinel contract (HA <= 2026.8) and the 0.4.x line (HA >= 2026.9).
+# Pinned here to the version the pinned HA tree (2025.8.1) itself ships.
+voluptuous-openapi==0.1.0
+
 # Per-component requirements the base plugin does NOT install but the
 # integration's platforms import at module load. Unpinned so the pinned HA tree
 # decides exact versions:

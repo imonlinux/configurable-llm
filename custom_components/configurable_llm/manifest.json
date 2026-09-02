@@ -18,7 +18,8 @@
   "issue_tracker": "https://github.com/imonlinux/configurable-llm/issues",
   "requirements": [
     "anthropic>=0.108.0,<0.109",
-    "openai>=2.45.0"
+    "openai>=2.45.0",
+    "voluptuous-openapi>=0.1.0,<0.5"
   ],
-  "version": "1.2.0"
+  "version": "1.2.1"
 }

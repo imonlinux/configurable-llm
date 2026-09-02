@@ -13,13 +13,19 @@ introduce a provider-neutral ``ModelDescriptor`` supertype.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import AsyncIterator, Iterable
+from collections.abc import AsyncIterator, Callable, Iterable
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 from anthropic.types import ModelInfo
+from voluptuous_openapi import UNSUPPORTED as OPENAPI_UNSUPPORTED
+
+try:  # HA >= 2026.9 ships probatio; older HA does not.
+    from probatio import UNSUPPORTED as PROBATIO_UNSUPPORTED
+except ImportError:  # pragma: no cover - depends on HA version
+    PROBATIO_UNSUPPORTED = None
 
 from homeassistant.components import conversation
 from homeassistant.core import HomeAssistant
@@ -29,7 +35,46 @@ if TYPE_CHECKING:
 
     from ..coordinator import ConfigurableLLMCoordinator
 
-__all__ = ["LLMProvider", "ModelInfo", "ProviderError", "ProviderRequestContext"]
+__all__ = [
+    "LLMProvider",
+    "ModelInfo",
+    "ProviderError",
+    "ProviderRequestContext",
+    "adapt_custom_serializer",
+]
+
+
+def adapt_custom_serializer(
+    serializer: Callable[[Any], Any] | None,
+) -> Callable[[Any], Any] | None:
+    """Bridge Home Assistant serializer conventions into voluptuous_openapi.
+
+    ``voluptuous_openapi`` defers to its native schema rendering only when the
+    custom serializer returns *its own* ``UNSUPPORTED`` sentinel. The serializer
+    we receive from Home Assistant targets whichever schema library HA core
+    currently uses:
+
+    - HA <= 2026.8: HA serializers return ``voluptuous_openapi.UNSUPPORTED``,
+      the same sentinel imported here — already compatible.
+    - HA >= 2026.9: HA core moved to ``probatio``; serializers return
+      ``probatio.UNSUPPORTED`` (a distinct object), and HA's merged serializer
+      hands back the input node itself when nothing handled it. Both would
+      otherwise be rendered verbatim as a schema, corrupting tool definitions.
+
+    Translate every "unhandled" outcome into ``voluptuous_openapi``'s sentinel
+    so the renderer falls back to native conversion, which handles voluptuous
+    schemas on every supported HA version.
+    """
+    if serializer is None:
+        return None
+
+    def adapted(node: Any) -> Any:
+        result = serializer(node)
+        if result is None or result is node or result is PROBATIO_UNSUPPORTED:
+            return OPENAPI_UNSUPPORTED
+        return result
+
+    return adapted
 
 
 class ProviderError(StrEnum):

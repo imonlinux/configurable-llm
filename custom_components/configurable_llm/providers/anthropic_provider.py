@@ -150,7 +150,12 @@ from ..const import (
     MIN_THINKING_BUDGET,
     PromptCaching,
 )
-from .base import LLMProvider, ProviderError, ProviderRequestContext
+from .base import (
+    LLMProvider,
+    ProviderError,
+    ProviderRequestContext,
+    adapt_custom_serializer,
+)
 
 if TYPE_CHECKING:
     from ..coordinator import ConfigurableLLMCoordinator
@@ -163,7 +168,10 @@ def _format_tool(
 ) -> ToolParam:
     """Format tool specification."""
     unsupported_keys = {"oneOf", "anyOf", "allOf"}
-    schema = convert(tool.parameters, custom_serializer=custom_serializer)
+    schema = convert(
+        tool.parameters,
+        custom_serializer=adapt_custom_serializer(custom_serializer),
+    )
     schema = {k: v for k, v in schema.items() if k not in unsupported_keys}
 
     return ToolParam(
@@ -1250,9 +1258,11 @@ class AnthropicProvider(LLMProvider):
                     schema={
                         **convert(
                             ctx.structure,
-                            custom_serializer=ctx.chat_log.llm_api.custom_serializer
-                            if ctx.chat_log.llm_api
-                            else llm.selector_serializer,
+                            custom_serializer=adapt_custom_serializer(
+                                ctx.chat_log.llm_api.custom_serializer
+                                if ctx.chat_log.llm_api
+                                else llm.selector_serializer
+                            ),
                         ),
                         "additionalProperties": False,
                     },
@@ -1298,9 +1308,11 @@ class AnthropicProvider(LLMProvider):
                         description="Use this tool to reply to the user",
                         input_schema=convert(
                             ctx.structure,
-                            custom_serializer=ctx.chat_log.llm_api.custom_serializer
-                            if ctx.chat_log.llm_api
-                            else llm.selector_serializer,
+                            custom_serializer=adapt_custom_serializer(
+                                ctx.chat_log.llm_api.custom_serializer
+                                if ctx.chat_log.llm_api
+                                else llm.selector_serializer
+                            ),
                         ),
                     )
                 )

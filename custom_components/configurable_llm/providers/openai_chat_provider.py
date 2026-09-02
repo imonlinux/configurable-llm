@@ -47,7 +47,12 @@ from ..const import (
     DOMAIN,
     LOGGER,
 )
-from .base import LLMProvider, ProviderError, ProviderRequestContext
+from .base import (
+    LLMProvider,
+    ProviderError,
+    ProviderRequestContext,
+    adapt_custom_serializer,
+)
 
 if TYPE_CHECKING:
     from ..coordinator import ConfigurableLLMCoordinator
@@ -58,7 +63,10 @@ def _format_tool(
 ) -> dict[str, Any]:
     """Format a tool as an OpenAI Chat Completions function tool."""
     unsupported_keys = {"oneOf", "anyOf", "allOf", "enum", "not"}
-    schema = convert(tool.parameters, custom_serializer=custom_serializer)
+    schema = convert(
+        tool.parameters,
+        custom_serializer=adapt_custom_serializer(custom_serializer),
+    )
     if unsupported_keys.intersection(schema):
         schema = {k: v for k, v in schema.items() if k not in unsupported_keys}
 
@@ -101,7 +109,7 @@ def _format_structured_output(
     """Format a schema for OpenAI ``response_format`` json_schema."""
     result: dict[str, Any] = convert(
         schema,
-        custom_serializer=(
+        custom_serializer=adapt_custom_serializer(
             llm_api.custom_serializer if llm_api else llm.selector_serializer
         ),
     )
