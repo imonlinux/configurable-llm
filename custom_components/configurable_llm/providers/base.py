@@ -22,11 +22,6 @@ import voluptuous as vol
 from anthropic.types import ModelInfo
 from voluptuous_openapi import UNSUPPORTED as OPENAPI_UNSUPPORTED
 
-try:  # HA >= 2026.9 ships probatio; older HA does not.
-    from probatio import UNSUPPORTED as PROBATIO_UNSUPPORTED
-except ImportError:  # pragma: no cover - depends on HA version
-    PROBATIO_UNSUPPORTED = None
-
 from homeassistant.components import conversation
 from homeassistant.core import HomeAssistant
 
@@ -54,23 +49,29 @@ def adapt_custom_serializer(
     we receive from Home Assistant targets whichever schema library HA core
     currently uses:
 
-    - HA <= 2026.8: HA serializers return ``voluptuous_openapi.UNSUPPORTED``,
-      the same sentinel imported here — already compatible.
+    - HA <= 2026.8: HA serializers return ``voluptuous_openapi.UNSUPPORTED``
+      when a node is unhandled (llm.py imports that sentinel directly) —
+      already compatible.
     - HA >= 2026.9: HA core moved to ``probatio``; serializers return
       ``probatio.UNSUPPORTED`` (a distinct object), and HA's merged serializer
-      hands back the input node itself when nothing handled it. Both would
-      otherwise be rendered verbatim as a schema, corrupting tool definitions.
+      hands back the input node itself when nothing handled it. Neither is a
+      schema, but ``voluptuous_openapi`` would try to render them as one and
+      raise ``TypeError`` inside ``ensure_default``, breaking every tool call.
 
-    Translate every "unhandled" outcome into ``voluptuous_openapi``'s sentinel
-    so the renderer falls back to native conversion, which handles voluptuous
-    schemas on every supported HA version.
+    The adapter translates *every* non-dict serializer outcome (``None``, node
+    identity, a foreign sentinel) into ``voluptuous_openapi``'s sentinel so the
+    renderer falls back to native conversion, and passes genuine schema dicts
+    through untouched. Safe by contract: HA's serializers only ever return a
+    selector/handler dict or an unhandled signal (core ``llm.py``, both eras),
+    and a non-dict return was never renderable by ``voluptuous_openapi`` to
+    begin with — so translating it can only fix, never lose.
     """
     if serializer is None:
         return None
 
     def adapted(node: Any) -> Any:
         result = serializer(node)
-        if result is None or result is node or result is PROBATIO_UNSUPPORTED:
+        if result is node or not isinstance(result, dict):
             return OPENAPI_UNSUPPORTED
         return result
 
