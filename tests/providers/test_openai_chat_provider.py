@@ -1,6 +1,6 @@
 """Test the OpenAI Chat Completions provider."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
@@ -72,7 +72,7 @@ async def test_convert_content_assistant_with_tool_calls(
         {
             "id": "call_1",
             "type": "function",
-            "function": {"name": "set_temperature", "arguments": '{"value": 21}'},
+            "function": {"name": "set_temperature", "arguments": '{"value":21}'},
         }
     ]
 
@@ -85,9 +85,54 @@ async def test_convert_content_tool_result(hass: HomeAssistant) -> None:
 
     messages = _convert_content([tool_result])
 
+    # json_dumps (orjson) emits compact separators
     assert messages == [
-        {"role": "tool", "tool_call_id": "call_1", "content": '{"ok": true}'}
+        {"role": "tool", "tool_call_id": "call_1", "content": '{"ok":true}'}
     ]
+
+
+async def test_convert_content_tool_result_datetime_values(
+    hass: HomeAssistant,
+) -> None:
+    """Tool results carrying datetime values must serialize.
+
+    HA intent tools (e.g. get_time) return tool results whose speech_slots
+    contain datetime.time/date objects. HA's assist pipeline surfaces a
+    serialization TypeError as "Unexpected error during intent recognition",
+    so tool results must go through HA's json_dumps (isoformat for datetimes),
+    not stdlib json.dumps.
+    """
+    tool_result = MagicMock(spec=conversation.ToolResultContent)
+    tool_result.tool_call_id = "call_1"
+    tool_result.tool_result = {
+        "success": True,
+        "speech_slots": {"time": time(14, 12)},
+    }
+
+    messages = _convert_content([tool_result])
+
+    assert messages[0]["role"] == "tool"
+    assert messages[0]["tool_call_id"] == "call_1"
+    assert "14:12" in messages[0]["content"]
+
+
+async def test_convert_content_tool_args_datetime_values(
+    hass: HomeAssistant,
+) -> None:
+    """Assistant tool-call arguments also serialize datetime values."""
+    tool_call = MagicMock()
+    tool_call.id = "call_1"
+    tool_call.tool_name = "set_timer"
+    tool_call.tool_args = {"start": time(7, 30)}
+
+    assistant = MagicMock(spec=conversation.AssistantContent)
+    assistant.content = None
+    assistant.tool_calls = [tool_call]
+
+    messages = _convert_content([assistant])
+
+    assert messages[0]["role"] == "assistant"
+    assert "07:30" in messages[0]["tool_calls"][0]["function"]["arguments"]
 
 
 async def test_convert_content_system_raises(hass: HomeAssistant) -> None:

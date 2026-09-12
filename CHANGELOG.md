@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.2
+
+### Fixed
+
+- **OpenAI tool serialization with datetime values** — Tool results and tool-call arguments in the OpenAI Chat Completions provider are now serialized with Home Assistant's `json_dumps` (orjson-backed) instead of stdlib `json.dumps`. HA intent tools such as `get_time` return tool results containing `datetime.time`/`date` objects (in `speech_slots`), which stdlib `json.dumps` cannot serialize — the turn failed with `TypeError: Object of type time is not JSON serializable`, surfaced by the assist pipeline as "Unexpected error during intent recognition". Values now serialize as ISO-8601 strings (`14:12:00`). This brings the OpenAI provider to parity with the Anthropic provider, which already used `json_dumps`. Two regression tests cover datetime-carrying tool results and tool-call arguments.
+
 ## 1.2.1
 
 Compatibility release for Home Assistant 2026.9.

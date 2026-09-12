@@ -34,6 +34,7 @@ from homeassistant.exceptions import (
 )
 from homeassistant.helpers import llm
 from homeassistant.helpers.httpx_client import get_async_client
+from homeassistant.helpers.json import json_dumps
 from homeassistant.helpers.update_coordinator import UpdateFailed
 from homeassistant.util import slugify
 
@@ -134,7 +135,11 @@ def _convert_content(
                 {
                     "role": "tool",
                     "tool_call_id": content.tool_call_id,
-                    "content": json.dumps(content.tool_result),
+                    # HA tool results carry non-JSON-native values (e.g. an
+                    # IntentResponseDict with datetime.time/date slots from
+                    # get_time and other intent tools). HA's json_dumps
+                    # serializes those, stdlib json.dumps raises TypeError.
+                    "content": json_dumps(content.tool_result),
                 }
             )
         elif isinstance(content, conversation.UserContent):
@@ -151,7 +156,7 @@ def _convert_content(
                         "type": "function",
                         "function": {
                             "name": tool_call.tool_name,
-                            "arguments": json.dumps(tool_call.tool_args),
+                            "arguments": json_dumps(tool_call.tool_args),
                         },
                     }
                     for tool_call in content.tool_calls
