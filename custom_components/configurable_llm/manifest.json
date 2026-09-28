@@ -17,9 +17,9 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/imonlinux/configurable-llm/issues",
   "requirements": [
-    "anthropic>=0.108.0,<0.13",
+    "anthropic>=0.108.0,<0.126",
     "openai>=2.45.0",
     "voluptuous-openapi>=0.1.0,<0.5"
   ],
-  "version": "1.2.3-beta.1"
+  "version": "1.2.3-beta.2"
 }

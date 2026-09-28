@@ -2,19 +2,19 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 1.2.3-beta.1
+## 1.2.3-beta.2
 
-Pre-release: compatibility fix for Home Assistant 2026.10.
+Pre-release: corrected dependency range. Supersedes 1.2.3-beta.1, whose cap (`<0.13`) was unsatisfiable under PEP 440 ordering (`0.13` sorts below `0.108.0`), so setup failed with "Requirements for configurable_llm not found" on every HA version, including 2026.9.
 
 ### Fixed
 
-- **Home Assistant 2026.10 compatibility** — HA 2026.10 (releases October 7) pins `anthropic==0.125.0` in core, and the previous manifest cap (`<0.109`) made the requirement ranges conflict, failing integration setup on upgrade. The pin widens to `anthropic>=0.108.0,<0.13`, which admits both the HA 2026.9 line (0.108.0) and 2026.10 (0.125.0). One release now serves both HA versions.
+- **Home Assistant 2026.10 compatibility** — HA 2026.10 (releases October 7) pins `anthropic==0.125.0` in core, and the previous manifest cap (`<0.109`) made the requirement ranges conflict, failing integration setup on upgrade. The pin widens to `anthropic>=0.108.0,<0.126`, which admits both the HA 2026.9 line (0.108.0) and 2026.10 (0.125.0). One release now serves both HA versions.
 
 ### Validation
 
-- Full suite re-run against the 2026.10 dependency set (anthropic 0.125.0, openai 3.10.0) on the pinned test tree: **122 passed, 2 skipped** — identical to the v1.2.2 baseline
+- Specifier assertions: `0.108.0` and `0.125.0` satisfy `>=0.108.0,<0.126`; `0.126.0` does not; the beta.1 range contains no valid version at all
+- Full suite against the 2026.10 dependency set (anthropic 0.125.0, openai 3.10.0) on the pinned test tree: **122 passed, 2 skipped** — identical to the v1.2.2 baseline
 - On HA 2026.9 the widened range resolves to the same `anthropic 0.108.0` already installed; zero runtime delta
-- Beta for live testing ahead of the HA 2026.10 release
 
 ## 1.2.2
 
