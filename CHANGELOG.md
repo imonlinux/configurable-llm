@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.3-beta.3
+
+Pre-release: fixes the config-flow crash when manually entering a model id the provider's models endpoint does not resolve ([#4](https://github.com/imonlinux/configurable-llm/issues/4)).
+
+### Fixed
+
+- **Config-flow crash on unresolvable model ids** — Manually typing a model id whose `models.retrieve` call returns a non-model body (z.ai answers ids outside its catalog with an empty 200 and no content-type, which the SDKs return as a raw string) crashed the model step with `AttributeError: 'str' object has no attribute 'max_tokens'`. Both providers' `fetch_model` now type-check the retrieve result and degrade unknown shapes to the safe-default descriptor, matching the cached-list miss path. Models that a provider keeps out of its catalog but still serves at chat time — z.ai's `glm-4.7-flash`, verified serving on both z.ai endpoints — now configure and run normally.
+
+### Validation
+
+- Five new regression tests pin the junk-result, real-result, and error paths in both providers' `fetch_model`
+- Full suite on the pinned test tree: **127 passed, 2 skipped** (baseline 122 passed, 2 skipped)
+
 ## 1.2.3-beta.2
 
 Pre-release: corrected dependency range. Supersedes 1.2.3-beta.1, whose cap (`<0.13`) was unsatisfiable under PEP 440 ordering (`0.13` sorts below `0.108.0`), so setup failed with "Requirements for configurable_llm not found" on every HA version, including 2026.9.

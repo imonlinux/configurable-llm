@@ -1071,6 +1071,22 @@ class AnthropicProvider(LLMProvider):
         except anthropic.AnthropicError as err:
             message = err.message if isinstance(err, anthropic.APIError) else str(err)
             return None, "api_error", message
+        if not isinstance(model_info, anthropic.types.ModelInfo):
+            # Some Anthropic-compatible servers keep ids out of their catalog
+            # yet still serve them at chat time, and answer models.retrieve
+            # for those ids with an empty 200 and no content-type, which the
+            # SDK returns as a raw str. Never block setup on that: degrade to
+            # safe defaults, matching the cached-list miss path.
+            return (
+                ModelInfo(
+                    type="model",
+                    id=model_id,
+                    created_at=datetime(1970, 1, 1, tzinfo=UTC),
+                    display_name=self.model_alias(model_id),
+                ),
+                None,
+                None,
+            )
         return model_info, None, None
 
     async def build_request(
