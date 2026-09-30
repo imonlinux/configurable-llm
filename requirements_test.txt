@@ -25,7 +25,7 @@ pytest-timeout>=2.3.0
 # itself. Tested against the versions Home Assistant 2026.10 pins, the newest
 # release this manifest supports:
 #   - anthropic: HA 2026.9 pins 0.108.0, HA 2026.10 pins 0.125.0; the manifest
-#     range (>=0.108.0,<0.13) admits both so one release serves both cores.
+#     range (>=0.108.0,<0.126) admits both so one release serves both cores.
 #   - openai: HA 2026.10 moved to the 3.x line (3.10.0); the manifest floor
 #     (>=2.45.0) admits both major lines.
 anthropic==0.125.0
