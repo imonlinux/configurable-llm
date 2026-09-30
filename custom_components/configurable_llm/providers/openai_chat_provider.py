@@ -386,6 +386,22 @@ class OpenAIChatProvider(LLMProvider):
                 None,
                 None,
             )
+        if not isinstance(model, openai.types.Model):
+            # A server can answer 200 with a body the SDK cannot shape into a
+            # Model (z.ai returns an empty 200 with no content-type for ids
+            # outside its catalog, and the SDK then hands back a raw str).
+            # Degrade to safe defaults like the exception path instead of
+            # letting the flow store a non-descriptor.
+            return (
+                ModelInfo(
+                    type="model",
+                    id=model_id,
+                    created_at=datetime(1970, 1, 1, tzinfo=UTC),
+                    display_name=model_id,
+                ),
+                None,
+                None,
+            )
         return self.normalize_model(model), None, None
 
     async def build_request(

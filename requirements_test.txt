@@ -21,9 +21,15 @@ pytest-asyncio>=0.23.0
 pytest-cov>=4.1.0
 pytest-timeout>=2.3.0
 
-# Runtime dependency of this integration, not provided by Home Assistant itself.
-anthropic==0.108.0
-openai==2.45.0
+# Runtime dependencies of this integration, not provided by Home Assistant
+# itself. Tested against the versions Home Assistant 2026.10 pins, the newest
+# release this manifest supports:
+#   - anthropic: HA 2026.9 pins 0.108.0, HA 2026.10 pins 0.125.0; the manifest
+#     range (>=0.108.0,<0.126) admits both so one release serves both cores.
+#   - openai: HA 2026.10 moved to the 3.x line (3.10.0); the manifest floor
+#     (>=2.45.0) admits both major lines.
+anthropic==0.125.0
+openai==3.10.0
 
 # voluptuous-openapi is declared in manifest.json so the integration is
 # self-contained on Home Assistant >= 2026.9, which removed it from the core

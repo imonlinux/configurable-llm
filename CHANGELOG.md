@@ -2,6 +2,49 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.3
+
+Compatibility release for Home Assistant 2026.10, plus a fix for the config-flow crash when manually entering a model id the provider's models endpoint does not resolve ([#4](https://github.com/imonlinux/configurable-llm/issues/4)).
+
+### Fixed
+
+- **Home Assistant 2026.10 compatibility** — HA 2026.10 (releases October 7) pins `anthropic==0.125.0` in core, and the previous manifest cap (`<0.109`) made the requirement ranges conflict, failing integration setup on upgrade. The pin widens to `anthropic>=0.108.0,<0.126`, which admits both the HA 2026.9 line (0.108.0) and 2026.10 (0.125.0). One release now serves both HA versions.
+- **Config-flow crash on unresolvable model ids** — Manually typing a model id whose `models.retrieve` call returns a non-model body (z.ai answers ids outside its catalog with an empty 200 and no content-type, which the SDKs return as a raw string) crashed the model step with `AttributeError: 'str' object has no attribute 'max_tokens'`. Both providers' `fetch_model` now type-check the retrieve result and degrade unknown shapes to the safe-default descriptor, matching the cached-list miss path. Models that a provider keeps out of its catalog but still serves at chat time — z.ai's `glm-4.7-flash`, verified serving on both z.ai endpoints — now configure and run normally.
+
+### Validation
+
+- Five new regression tests pin the junk-result, real-result, and error paths in both providers' `fetch_model`
+- Full suite on the pinned test tree: **127 passed, 2 skipped** (baseline 122 passed, 2 skipped)
+- On HA 2026.9 the widened range resolves to the same `anthropic 0.108.0` already installed; zero runtime delta
+- Live-validated during the beta cycle: setup and responses verified on HA 2026.9
+
+## 1.2.3-beta.3
+
+Pre-release: fixes the config-flow crash when manually entering a model id the provider's models endpoint does not resolve ([#4](https://github.com/imonlinux/configurable-llm/issues/4)).
+
+### Fixed
+
+- **Config-flow crash on unresolvable model ids** — Manually typing a model id whose `models.retrieve` call returns a non-model body (z.ai answers ids outside its catalog with an empty 200 and no content-type, which the SDKs return as a raw string) crashed the model step with `AttributeError: 'str' object has no attribute 'max_tokens'`. Both providers' `fetch_model` now type-check the retrieve result and degrade unknown shapes to the safe-default descriptor, matching the cached-list miss path. Models that a provider keeps out of its catalog but still serves at chat time — z.ai's `glm-4.7-flash`, verified serving on both z.ai endpoints — now configure and run normally.
+
+### Validation
+
+- Five new regression tests pin the junk-result, real-result, and error paths in both providers' `fetch_model`
+- Full suite on the pinned test tree: **127 passed, 2 skipped** (baseline 122 passed, 2 skipped)
+
+## 1.2.3-beta.2
+
+Pre-release: corrected dependency range. Supersedes 1.2.3-beta.1, whose cap (`<0.13`) was unsatisfiable under PEP 440 ordering (`0.13` sorts below `0.108.0`), so setup failed with "Requirements for configurable_llm not found" on every HA version, including 2026.9.
+
+### Fixed
+
+- **Home Assistant 2026.10 compatibility** — HA 2026.10 (releases October 7) pins `anthropic==0.125.0` in core, and the previous manifest cap (`<0.109`) made the requirement ranges conflict, failing integration setup on upgrade. The pin widens to `anthropic>=0.108.0,<0.126`, which admits both the HA 2026.9 line (0.108.0) and 2026.10 (0.125.0). One release now serves both HA versions.
+
+### Validation
+
+- Specifier assertions: `0.108.0` and `0.125.0` satisfy `>=0.108.0,<0.126`; `0.126.0` does not; the beta.1 range contains no valid version at all
+- Full suite against the 2026.10 dependency set (anthropic 0.125.0, openai 3.10.0) on the pinned test tree: **122 passed, 2 skipped** — identical to the v1.2.2 baseline
+- On HA 2026.9 the widened range resolves to the same `anthropic 0.108.0` already installed; zero runtime delta
+
 ## 1.2.2
 
 ### Fixed

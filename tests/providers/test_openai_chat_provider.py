@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import openai
 import pytest
+from anthropic.types import ModelInfo
 from homeassistant.components import conversation
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import (
@@ -604,3 +605,39 @@ def test_get_default_model_empty_list_returns_fallback(
     """When model list is empty, return the fallback."""
     result = provider.get_default_model(None, "fallback")
     assert result == "fallback"
+
+
+# --------------------------------------------------------------------------- #
+# fetch_model (issue #4: junk models.retrieve results must not block setup)
+# --------------------------------------------------------------------------- #
+async def test_fetch_model_degrades_on_non_model_result(hass: HomeAssistant) -> None:
+    """A raw-str retrieve result (z.ai's empty 200) degrades to safe defaults."""
+    coordinator = MagicMock()
+    coordinator.client.with_options.return_value.models.retrieve = AsyncMock(
+        return_value="glm-4.7-flash"
+    )
+
+    info, err_key, _ = await provider.fetch_model(coordinator, "glm-4.7-flash")
+
+    assert err_key is None
+    assert isinstance(info, ModelInfo)
+    assert info.id == "glm-4.7-flash"
+    assert info.display_name == "glm-4.7-flash"
+    assert info.capabilities is None
+
+
+async def test_fetch_model_passthrough_on_real_model(hass: HomeAssistant) -> None:
+    """A real openai Model is normalized into a descriptor."""
+    raw = MagicMock(spec=openai.types.Model)
+    raw.id = "llama-3-70b"
+    raw.created = 1700000000
+    coordinator = MagicMock()
+    coordinator.client.with_options.return_value.models.retrieve = AsyncMock(
+        return_value=raw
+    )
+
+    info, err_key, _ = await provider.fetch_model(coordinator, "llama-3-70b")
+
+    assert err_key is None
+    assert info.id == "llama-3-70b"
+    assert info.display_name == "llama-3-70b"

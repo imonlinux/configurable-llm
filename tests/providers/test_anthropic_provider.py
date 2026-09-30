@@ -6,8 +6,11 @@ These tests were relocated verbatim from ``tests/test_entity.py`` and
 """
 
 from collections import deque
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
+import anthropic
+from anthropic.types import ModelInfo
 from homeassistant.components import conversation
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -342,3 +345,56 @@ async def test_delta_stream_iteration() -> None:
     result = await delta_stream.__anext__()
 
     assert result == {"content": "Buffered"}
+
+
+# --------------------------------------------------------------------------- #
+# fetch_model (issue #4: junk models.retrieve results must not block setup)
+# --------------------------------------------------------------------------- #
+async def test_fetch_model_degrades_on_non_model_result(hass: HomeAssistant) -> None:
+    """A raw-str retrieve result (z.ai's empty 200) degrades to safe defaults."""
+    coordinator = MagicMock()
+    coordinator.client.models.retrieve = AsyncMock(return_value="glm-4.7-flash")
+
+    info, err_key, err_msg = await provider.fetch_model(coordinator, "glm-4.7-flash")
+
+    assert err_key is None
+    assert err_msg is None
+    assert isinstance(info, ModelInfo)
+    assert info.id == "glm-4.7-flash"
+    assert info.display_name == "glm-4.7-flash"
+    assert info.capabilities is None
+    assert info.max_tokens is None
+
+
+async def test_fetch_model_passthrough_on_real_result(hass: HomeAssistant) -> None:
+    """A genuine ModelInfo from retrieve is returned untouched."""
+    real = ModelInfo(
+        type="model",
+        id="glm-4.7",
+        created_at=datetime(2025, 12, 22, tzinfo=UTC),
+        display_name="GLM-4.7",
+        capabilities=None,
+        max_tokens=None,
+    )
+    coordinator = MagicMock()
+    coordinator.client.models.retrieve = AsyncMock(return_value=real)
+
+    info, err_key, _ = await provider.fetch_model(coordinator, "glm-4.7")
+
+    assert info is real
+    assert err_key is None
+
+
+async def test_fetch_model_not_found_error(hass: HomeAssistant) -> None:
+    """NotFoundError maps to the model_not_found error key."""
+    coordinator = MagicMock()
+    coordinator.client.models.retrieve = AsyncMock(
+        side_effect=anthropic.NotFoundError(
+            message="m", response=MagicMock(), body=None
+        )
+    )
+
+    info, err_key, _ = await provider.fetch_model(coordinator, "does-not-exist")
+
+    assert info is None
+    assert err_key == "model_not_found"
