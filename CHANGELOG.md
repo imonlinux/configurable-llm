@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.4-beta.1
+
+Pre-release: fixes the Home Assistant 2026.10 tool-result deprecation warnings, ahead of the stable 1.2.4.
+
+### Fixed
+
+- **Home Assistant 2026.10 tool-result deprecation** — HA 2026.10 deprecated `ToolResultContent.tool_result` (a plain JSON object) in favor of `ToolResultContent.result`, an `llm.ToolResult` carrying the tool's `data` and an `error` flag; reading the old field keeps working there with a log warning until HA 2027.11. Both providers now read the payload from `result` when present and fall back to `tool_result` on older cores, so one release serves both HA versions (new `providers/_compat.py`). The Anthropic provider additionally passes the tool's error flag through as `is_error` on generic tool-result blocks and reconstructs server-tool results (`web_search`, `web_fetch`, code execution, `tool_search`) in the 2026.10 delta shape, mirroring upstream core's own conversion.
+
+### Validation
+
+- Full suite on the pinned test tree (HA 2025.8.1 floor): **133 passed, 2 skipped** — the 127-passed 1.2.3 baseline plus six new tests covering the result-field read path in both providers, the `is_error` pass-through, the legacy fallback, and both delta shapes
+
 ## 1.2.3
 
 Compatibility release for Home Assistant 2026.10, plus a fix for the config-flow crash when manually entering a model id the provider's models endpoint does not resolve ([#4](https://github.com/imonlinux/configurable-llm/issues/4)).
