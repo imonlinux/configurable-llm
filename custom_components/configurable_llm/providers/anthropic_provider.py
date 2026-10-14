@@ -71,6 +71,7 @@ from anthropic.types import (
     ToolChoiceAutoParam,
     ToolChoiceToolParam,
     ToolParam,
+    ToolResultBlockParam,
     ToolSearchToolBm25_20251119Param,
     ToolSearchToolResultBlock,
     ToolUnionParam,
@@ -150,6 +151,7 @@ from ..const import (
     MIN_THINKING_BUDGET,
     PromptCaching,
 )
+from ._compat import tool_result_delta, tool_result_payload
 from .base import (
     LLMProvider,
     ProviderError,
@@ -270,6 +272,9 @@ def _convert_content(  # noqa: C901
 
     for content in chat_content:
         if isinstance(content, conversation.ToolResultContent):
+            # HA 2026.10 moved the payload to result (an llm.ToolResult);
+            # older cores only have tool_result. _compat picks the field.
+            payload, error = tool_result_payload(content)
             external_tool = True
             if content.tool_name == "web_search":
                 tool_result_block: ContentBlockParam = {
@@ -277,13 +282,11 @@ def _convert_content(  # noqa: C901
                     "tool_use_id": content.tool_call_id,
                     "content": cast(
                         WebSearchToolResultBlockParamContentParam,
-                        content.tool_result["content"]
-                        if "content" in content.tool_result
+                        payload["content"]
+                        if "content" in payload
                         else {
                             "type": "web_search_tool_result_error",
-                            "error_code": content.tool_result.get(
-                                "error_code", "unavailable"
-                            ),
+                            "error_code": payload.get("error_code", "unavailable"),
                         },
                     ),
                 }
@@ -293,7 +296,7 @@ def _convert_content(  # noqa: C901
                     "tool_use_id": content.tool_call_id,
                     "content": cast(
                         CodeExecutionToolResultBlockParamContentParam,
-                        content.tool_result,
+                        payload,
                     ),
                 }
             elif content.tool_name == "bash_code_execution":
@@ -302,7 +305,7 @@ def _convert_content(  # noqa: C901
                     "tool_use_id": content.tool_call_id,
                     "content": cast(
                         BashCodeExecutionToolResultBlockParamContentParam,
-                        content.tool_result,
+                        payload,
                     ),
                 }
             elif content.tool_name == "text_editor_code_execution":
@@ -311,7 +314,7 @@ def _convert_content(  # noqa: C901
                     "tool_use_id": content.tool_call_id,
                     "content": cast(
                         TextEditorCodeExecutionToolResultBlockParamContentParam,
-                        content.tool_result,
+                        payload,
                     ),
                 }
             elif content.tool_name == "tool_search":
@@ -320,7 +323,7 @@ def _convert_content(  # noqa: C901
                     "tool_use_id": content.tool_call_id,
                     "content": cast(
                         ToolSearchToolResultBlockParamContentParam,
-                        content.tool_result,
+                        payload,
                     ),
                 }
             elif content.tool_name == "web_fetch":
@@ -329,15 +332,18 @@ def _convert_content(  # noqa: C901
                     "tool_use_id": content.tool_call_id,
                     "content": cast(
                         WebFetchToolResultBlockParamContentParam,
-                        content.tool_result,
+                        payload,
                     ),
                 }
             else:
-                tool_result_block = {
+                generic_result_block: ToolResultBlockParam = {
                     "type": "tool_result",
                     "tool_use_id": content.tool_call_id,
-                    "content": json_dumps(content.tool_result),
+                    "content": json_dumps(payload),
                 }
+                if error is not None:
+                    generic_result_block["is_error"] = error
+                tool_result_block = generic_result_block
                 external_tool = False
             if not messages or messages[-1]["role"] != (
                 "assistant" if external_tool else "user"
@@ -789,17 +795,24 @@ class ConfigurableLLMDeltaStream:
             self._buffer.append({"native": self._content_details})
         self._content_details = ContentDetails()
         self._content_details.add_citation_detail()
+        data = (
+            {"content": cast(JsonArrayType, [x.to_dict() for x in content])}
+            if isinstance(content, list)
+            else cast(JsonObjectType, content.to_dict())
+        )
+        # Error blocks arrive as a single *_tool_result_error block rather
+        # than a list (mirrors upstream core's delta reconstruction).
+        error = not isinstance(content, list) and content.type.endswith(
+            "_tool_result_error"
+        )
         self._buffer.append(
-            {
-                "role": "tool_result",
-                "tool_call_id": tool_use_id,
-                "tool_name": tool_name.removesuffix("_tool_result"),
-                "tool_result": {
-                    "content": cast(JsonArrayType, [x.to_dict() for x in content])
-                }
-                if isinstance(content, list)
-                else cast(JsonObjectType, content.to_dict()),
-            }
+            tool_result_delta(
+                role="tool_result",
+                tool_call_id=tool_use_id,
+                tool_name=tool_name.removesuffix("_tool_result"),
+                data=data,
+                error=error,
+            )
         )
         self._first_block = True
 

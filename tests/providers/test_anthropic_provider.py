@@ -7,6 +7,8 @@ These tests were relocated verbatim from ``tests/test_entity.py`` and
 
 from collections import deque
 from datetime import UTC, datetime
+import json
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import anthropic
@@ -14,6 +16,7 @@ from anthropic.types import ModelInfo
 from homeassistant.components import conversation
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import llm as llm_module
 
 from custom_components.configurable_llm.providers.anthropic_provider import (
     AnthropicProvider,
@@ -304,6 +307,71 @@ async def test_convert_content_tool_result_with_external_tool(
     assert messages[0]["content"][0]["type"] == "web_search_tool_result"
 
 
+async def test_convert_content_tool_result_result_field(
+    hass: HomeAssistant,
+) -> None:
+    """HA 2026.10+: server tool payload is read from result.data.
+
+    result.data must win over the legacy tool_result field, which is only a
+    deprecation-warning fallback there.
+    """
+    tool_result = MagicMock(spec=conversation.ToolResultContent)
+    tool_result.tool_name = "web_search"
+    tool_result.tool_call_id = "call_123"
+    tool_result.result = SimpleNamespace(
+        data={"content": [{"type": "text", "text": "Fresh results"}]},
+        error=False,
+    )
+    tool_result.tool_result = {"content": [{"type": "text", "text": "STALE"}]}
+    tool_result.role = "tool_result"
+
+    messages, container_id = _convert_content([tool_result])
+
+    assert len(messages) == 1
+    assert messages[0]["role"] == "assistant"
+    block = messages[0]["content"][0]
+    assert block["type"] == "web_search_tool_result"
+    assert block["content"] == [{"type": "text", "text": "Fresh results"}]
+
+
+async def test_convert_content_generic_tool_result_is_error(
+    hass: HomeAssistant,
+) -> None:
+    """HA 2026.10+: the ToolResult error flag passes through as is_error."""
+    tool_result = MagicMock(spec=conversation.ToolResultContent)
+    tool_result.tool_name = "get_weather"
+    tool_result.tool_call_id = "call_9"
+    tool_result.result = SimpleNamespace(data={"temp": 21}, error=True)
+
+    messages, container_id = _convert_content([tool_result])
+
+    assert len(messages) == 1
+    assert messages[0]["role"] == "user"
+    block = messages[0]["content"][0]
+    assert block["type"] == "tool_result"
+    assert json.loads(block["content"]) == {"temp": 21}
+    assert block["is_error"] is True
+
+
+async def test_convert_content_generic_tool_result_legacy(
+    hass: HomeAssistant,
+) -> None:
+    """Legacy cores: payload from tool_result, no error flag to pass."""
+    tool_result = MagicMock(spec=conversation.ToolResultContent)
+    tool_result.tool_name = "get_weather"
+    tool_result.tool_call_id = "call_9"
+    tool_result.tool_result = {"temp": 21}
+
+    messages, container_id = _convert_content([tool_result])
+
+    assert len(messages) == 1
+    assert messages[0]["role"] == "user"
+    block = messages[0]["content"][0]
+    assert block["type"] == "tool_result"
+    assert json.loads(block["content"]) == {"temp": 21}
+    assert "is_error" not in block
+
+
 # --------------------------------------------------------------------------- #
 # ConfigurableLLMDeltaStream (moved from test_entity.py)
 # --------------------------------------------------------------------------- #
@@ -345,6 +413,59 @@ async def test_delta_stream_iteration() -> None:
     result = await delta_stream.__anext__()
 
     assert result == {"content": "Buffered"}
+
+
+def test_server_tool_result_delta_legacy(monkeypatch) -> None:
+    """Cores without llm.ToolResult: the delta carries the tool_result key."""
+    from custom_components.configurable_llm.providers import _compat
+
+    monkeypatch.setattr(_compat, "HAS_LLM_TOOL_RESULT", False)
+    chat_log = MagicMock(spec=conversation.ChatLog)
+    delta_stream = ConfigurableLLMDeltaStream(chat_log, MagicMock())
+
+    block = MagicMock()
+    block.to_dict.return_value = {"type": "web_search_tool_result", "content": []}
+    block.type = "web_search_tool_result"
+    delta_stream.on_server_tool_result_block(
+        "tu_1", "web_search_tool_result", block, None
+    )
+
+    delta = delta_stream._buffer[-1]
+    assert delta["role"] == "tool_result"
+    assert delta["tool_call_id"] == "tu_1"
+    assert delta["tool_name"] == "web_search"
+    assert delta["tool_result"] == {"type": "web_search_tool_result", "content": []}
+    assert "result" not in delta
+
+
+def test_server_tool_result_delta_llm_tool_result(monkeypatch) -> None:
+    """HA 2026.10+: the delta wraps the payload in an llm.ToolResult."""
+    from custom_components.configurable_llm.providers import _compat
+
+    monkeypatch.setattr(_compat, "HAS_LLM_TOOL_RESULT", True)
+    monkeypatch.setattr(
+        llm_module,
+        "ToolResult",
+        lambda data, error: SimpleNamespace(data=data, error=error),
+        raising=False,
+    )
+    chat_log = MagicMock(spec=conversation.ChatLog)
+    delta_stream = ConfigurableLLMDeltaStream(chat_log, MagicMock())
+
+    block = MagicMock()
+    block.to_dict.return_value = {"type": "text", "text": "hi"}
+    block.type = "web_search_tool_result_error"
+    delta_stream.on_server_tool_result_block(
+        "tu_2", "web_search_tool_result", block, None
+    )
+
+    delta = delta_stream._buffer[-1]
+    assert delta["role"] == "tool_result"
+    assert delta["tool_call_id"] == "tu_2"
+    assert delta["tool_name"] == "web_search"
+    assert "tool_result" not in delta
+    assert delta["result"].data == {"type": "text", "text": "hi"}
+    assert delta["result"].error is True
 
 
 # --------------------------------------------------------------------------- #

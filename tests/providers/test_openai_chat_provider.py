@@ -92,6 +92,32 @@ async def test_convert_content_tool_result(hass: HomeAssistant) -> None:
     ]
 
 
+async def test_convert_content_tool_result_result_field(
+    hass: HomeAssistant,
+) -> None:
+    """HA 2026.10+: the payload lives on result (llm.ToolResult).
+
+    result.data must win over the legacy tool_result field, which is only
+    a deprecation-warning fallback there.
+    """
+    tool_result = MagicMock(spec=conversation.ToolResultContent)
+    tool_result.tool_call_id = "call_1"
+    tool_result.result = SimpleNamespace(
+        data={"ok": True, "source": "result"}, error=False
+    )
+    tool_result.tool_result = {"ok": False, "source": "legacy"}
+
+    messages = _convert_content([tool_result])
+
+    assert messages == [
+        {
+            "role": "tool",
+            "tool_call_id": "call_1",
+            "content": '{"ok":true,"source":"result"}',
+        }
+    ]
+
+
 async def test_convert_content_tool_result_datetime_values(
     hass: HomeAssistant,
 ) -> None:
