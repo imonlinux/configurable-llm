@@ -48,6 +48,7 @@ from ..const import (
     DOMAIN,
     LOGGER,
 )
+from ._compat import tool_result_payload
 from .base import (
     LLMProvider,
     ProviderError,
@@ -131,6 +132,7 @@ def _convert_content(
 
     for content in chat_content:
         if isinstance(content, conversation.ToolResultContent):
+            payload, _error = tool_result_payload(content)
             messages.append(
                 {
                     "role": "tool",
@@ -139,7 +141,7 @@ def _convert_content(
                     # IntentResponseDict with datetime.time/date slots from
                     # get_time and other intent tools). HA's json_dumps
                     # serializes those, stdlib json.dumps raises TypeError.
-                    "content": json_dumps(content.tool_result),
+                    "content": json_dumps(payload),
                 }
             )
         elif isinstance(content, conversation.UserContent):
