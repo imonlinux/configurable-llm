@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.2.5
+
+Compatibility fix for Home Assistant 2026.11's move to the anthropic SDK 2.x line.
+
+### Fixed
+
+- **Home Assistant 2026.11 anthropic conflict** — HA 2026.11 pins `anthropic==2.3.0` in core (up from 0.125.0 in 2026.10), and the manifest's `>=0.108.0,<0.126` range excluded it, so hassfest flagged the integration incompatible and a 2026.11 install would fight core over the shared package. The range widens to `>=0.108.0,<3`, admitting the 2.x line while keeping the 2025.8 floor. No code changes: every SDK surface the integration uses (`anthropic.types.ModelInfo`, `DEPRECATED_MODELS`, all block types, exception classes, `AsyncStream`) is unchanged in 2.3.0 (verified by import against the released package), and the `http_client` passthrough stays correct because HA 2026.11's `get_async_client` helper moved to httpx2 in lockstep with the SDK — the same pairing core's own `anthropic` and `openai_conversation` integrations ship.
+
+### Validation
+
+- Import smoke test of the integration's full anthropic import surface against `anthropic==2.3.0` on Python 3.13: clean
+- Full suite on the pinned test tree (HA 2025.8.1, anthropic 0.125.0 floor): **133 passed, 2 skipped**, unchanged — the change is manifest metadata only
+
 ## 1.2.4
 
 Stable release of the Home Assistant 2026.10 tool-result deprecation fix. Install-gated to Home Assistant 2026.11 for the duration of the 2026.11 release cycle (see below).
