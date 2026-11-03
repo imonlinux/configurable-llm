@@ -26,7 +26,16 @@ CONF_REASONING_EFFORT = "reasoning_effort"
 
 # `reasoning_effort` choices offered for OpenAI-compatible providers. Servers and
 # models vary in what they accept; "none" means "do not send the parameter".
-REASONING_EFFORT_OPTIONS = ["none", "minimal", "low", "medium", "high"]
+# The selector also accepts a typed custom value for provider-specific levels.
+REASONING_EFFORT_OPTIONS = [
+    "none",
+    "minimal",
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+    "max",
+]
 
 CONF_WEB_FETCH_MAX_USES = "web_fetch_max_uses"
 CONF_WEB_SEARCH = "web_search"

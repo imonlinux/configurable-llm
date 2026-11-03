@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
 import anthropic
 import httpx
 import pytest
+import voluptuous as vol
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigEntryState,
@@ -30,6 +31,7 @@ from custom_components.configurable_llm.const import (
     CONF_PRESET,
     CONF_PROTOCOL,
     CONF_PROMPT_CACHING,
+    CONF_REASONING_EFFORT,
     CONF_RECOMMENDED,
     CONF_THINKING_BUDGET,
     CONF_WEB_SEARCH,
@@ -861,3 +863,11 @@ async def test_flow_subentry_openai_model_schema(
         result = await flow.async_step_model({})
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
+
+
+@pytest.mark.parametrize("effort", ["none", "minimal", "xhigh", "max", "ultra"])
+async def test_flow_subentry_openai_reasoning_effort_values(effort: str) -> None:
+    """The reasoning effort selector accepts presets and typed custom values."""
+    schema = vol.Schema(ConversationSubentryFlowHandler()._openai_model_schema())
+
+    assert schema({CONF_REASONING_EFFORT: effort})[CONF_REASONING_EFFORT] == effort
