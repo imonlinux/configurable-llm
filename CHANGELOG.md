@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.3.0
+
+Community contribution plus a floor reset: 1.3.0 is the first release that requires Home Assistant 2026.11.
+
+### Added
+
+- **`minimal` reasoning effort for OpenAI-compatible providers** — the `reasoning_effort` selector gains a `minimal` option (PR #9 by @AimanFarooq, closes #7). Reasoning models such as OpenAI's gpt-5 family accept `reasoning_effort=minimal`, which roughly halves first-text latency for short voice-assistant answers compared to `low`. The provider forwards any value other than `none` verbatim, so the change is the selector option, its label, and a regression test pinning the forwarding behavior.
+
+### Changed
+
+- **Home Assistant floor raised to 2026.11** — the `homeassistant: "2026.11.0"` key in `hacs.json` is now the project's supported floor rather than a temporary gate. The reason is structural: the manifest admits the anthropic 2.x line (`>=0.108.0,<3`) to stay compatible with HA 2026.11's core pin (`anthropic==2.3.0`), and the 2.x SDK pairs with httpx2, a pairing that only exists in 2026.11+. One manifest cannot serve both generations — capping below 2.x re-breaks hassfest on 2026.11, admitting 2.x breaks 2026.10 — so the floor is how the project draws that line. Clients below the floor see the repository as pending in HACS and the built-in Marketplace: no update is offered, existing installs run untouched, and the update surfaces within roughly six hours of a client reaching 2026.11. README requirements, badge, and troubleshooting now state 2026.11 (the troubleshooting entry also corrects a stale `anthropic` pin range).
+
+### Validation
+
+- Full suite on the pinned test tree (HA 2025.8.1, anthropic 0.125.0 — the test tree deliberately stays on older pins; code-level compatibility is verified there while hassfest validates the manifest against core): **134 passed, 2 skipped** — the 133/2 baseline plus the new forwarding test
+- Hassfest and Tests green on PR #9 (merged as `9193b43`)
+
 ## 1.2.5
 
 Compatibility fix for Home Assistant 2026.11's move to the anthropic SDK 2.x line.
