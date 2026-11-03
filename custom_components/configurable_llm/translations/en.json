@@ -245,6 +245,7 @@
     "reasoning_effort": {
       "options": {
         "none": "Default (none)",
+        "minimal": "Minimal",
         "low": "Low",
         "medium": "Medium",
         "high": "High"
