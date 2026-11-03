@@ -409,6 +409,14 @@ async def test_build_request_sampling_params(hass: HomeAssistant) -> None:
     assert "reasoning_effort" not in request
 
 
+async def test_build_request_reasoning_effort_minimal(hass: HomeAssistant) -> None:
+    """'minimal' effort is forwarded verbatim, not treated like 'none'."""
+    options = {**DEFAULT_OPENAI, CONF_REASONING_EFFORT: "minimal"}
+    request, _ = await provider.build_request(_ctx(options=options))
+
+    assert request["reasoning_effort"] == "minimal"
+
+
 async def test_build_request_tools(hass: HomeAssistant) -> None:
     """HA tools become Chat Completions function tools."""
     request, _ = await provider.build_request(_ctx(with_tools=True))
