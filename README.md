@@ -1,7 +1,7 @@
 # Configurable LLM for Home Assistant
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Home Assistant](https://img.shields.io/badge/Home_Assistant-2025.8%2B-blue.svg)](https://www.home-assistant.io/)
+[![Home Assistant](https://img.shields.io/badge/Home_Assistant-2026.11%2B-blue.svg)](https://www.home-assistant.io/)
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://hacs.xyz/)
 
 A Home Assistant integration that adds a conversation agent and AI task entity backed by any Anthropic- or OpenAI-compatible API endpoint. Based on the official Home Assistant Anthropic integration, extended with a provider-pluggable architecture and configurable base URLs.
@@ -23,7 +23,7 @@ If you're using the official Anthropic or OpenAI APIs directly, you should use H
 
 ### Requirements
 
-- Home Assistant **2025.8** or newer
+- Home Assistant **2026.11** or newer
 - An API key for an Anthropic- or OpenAI-compatible service
 
 ### Via HACS (recommended)
@@ -203,8 +203,8 @@ Restart Home Assistant.
 
 Check the Home Assistant log (`Settings → System → Logs`). The most common causes:
 
-- **HA version too old** — this integration requires HA 2025.8 or newer because it uses AI task entities and config subentries
-- **SDK install failed** — the integration requires `anthropic>=0.108.0,<0.109` and `openai>=2.45.0`; pip needs network access on first load
+- **HA version too old** — this integration requires HA 2026.11 or newer because it uses AI task entities, config subentries, and the anthropic 2.x SDK line (HACS and the built-in Marketplace show the repository as pending below that version)
+- **SDK install failed** — the integration requires `anthropic>=0.108.0,<3` and `openai>=2.45.0`; pip needs network access on first load
 
 ### Authentication fails
 
