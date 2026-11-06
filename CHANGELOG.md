@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.3.1
+
+Community contribution: richer reasoning-effort control for OpenAI-compatible providers.
+
+### Added
+
+- **`xhigh` and `max` reasoning effort presets for OpenAI-compatible providers** — the `reasoning_effort` selector gains `xhigh` ("Extra high") and `max` ("Max") options for models that accept them (PR #11 by @AimanFarooq, follow-up to #7). Meta's Model API documents `xhigh` and `max` on some models, and other OpenAI-compatible servers define their own levels. As with the existing options, the provider forwards any value other than `none` verbatim.
+- **Custom reasoning effort values** — the selector now accepts a typed custom value, the same way the model picker already does, so provider-specific effort levels outside the standard set (e.g. `ultra`) can be configured directly without waiting for the option to ship in a release. Because custom values are free text, the provider trims stray whitespace and treats a blank value like the `none` default (parameter omitted). Selector labels in `strings.json` and `en.json` cover the new presets and the custom-entry behavior.
+
+### Validation
+
+- Full suite on the pinned test tree (HA 2025.8.1, anthropic 0.125.0): **145 passed, 2 skipped** — the 134/2 baseline plus the PR's new forwarding tests (`xhigh`, `max`, custom `ultra`, whitespace trimming) and parametrized config-flow cases
+- Hassfest, Tests (Python 3.13), and HACS Action green on PR #11 (merged as `3bd8087`)
+
 ## 1.3.0
 
 Community contribution plus a floor reset: 1.3.0 is the first release that requires Home Assistant 2026.11.
