@@ -417,6 +417,30 @@ async def test_build_request_reasoning_effort_minimal(hass: HomeAssistant) -> No
     assert request["reasoning_effort"] == "minimal"
 
 
+@pytest.mark.parametrize(
+    ("configured", "expected"),
+    [
+        ("xhigh", "xhigh"),
+        ("max", "max"),
+        # Typed custom value for a provider-specific level.
+        ("ultra", "ultra"),
+        # Stray whitespace from free-text entry is trimmed.
+        ("  low ", "low"),
+        # Blank custom entries behave like the "none" default.
+        ("   ", None),
+        ("", None),
+    ],
+)
+async def test_build_request_reasoning_effort_values(
+    hass: HomeAssistant, configured: str, expected: str | None
+) -> None:
+    """Preset and custom effort values are forwarded; blanks are omitted."""
+    options = {**DEFAULT_OPENAI, CONF_REASONING_EFFORT: configured}
+    request, _ = await provider.build_request(_ctx(options=options))
+
+    assert request.get("reasoning_effort") == expected
+
+
 async def test_build_request_tools(hass: HomeAssistant) -> None:
     """HA tools become Chat Completions function tools."""
     request, _ = await provider.build_request(_ctx(with_tools=True))

@@ -439,7 +439,8 @@ class OpenAIChatProvider(LLMProvider):
             request["top_p"] = top_p
 
         # reasoning_effort is model-dependent; only send when explicitly set.
-        reasoning_effort = options.get(CONF_REASONING_EFFORT)
+        # Custom values are typed free text, so trim stray whitespace.
+        reasoning_effort = (options.get(CONF_REASONING_EFFORT) or "").strip()
         if reasoning_effort and reasoning_effort != "none":
             request["reasoning_effort"] = reasoning_effort
 

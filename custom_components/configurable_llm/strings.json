@@ -115,7 +115,7 @@
             "web_fetch": "Allow the model to retrieve full content from specified web pages and PDF documents to augment its context with live web content.",
             "web_fetch_max_uses": "Limit the number of web fetches the model can perform in a single response.",
             "tool_search": "Discover Home Assistant tools on demand instead of loading them all upfront. Useful when many tools are exposed.",
-            "reasoning_effort": "Reasoning effort for OpenAI-compatible reasoning models. Leave at Default if your model or server does not support it."
+            "reasoning_effort": "Reasoning effort for OpenAI-compatible reasoning models. Leave at Default if your model or server does not support it. You can also type a value your provider documents that is not listed."
           }
         }
       },
@@ -191,7 +191,7 @@
             "web_fetch": "Allow the model to retrieve full content from specified web pages and PDF documents to augment its context with live web content.",
             "web_fetch_max_uses": "Limit the number of web fetches the model can perform in a single response.",
             "tool_search": "Discover Home Assistant tools on demand instead of loading them all upfront. Useful when many tools are exposed.",
-            "reasoning_effort": "Reasoning effort for OpenAI-compatible reasoning models. Leave at Default if your model or server does not support it."
+            "reasoning_effort": "Reasoning effort for OpenAI-compatible reasoning models. Leave at Default if your model or server does not support it. You can also type a value your provider documents that is not listed."
           }
         }
       },
@@ -248,7 +248,9 @@
         "minimal": "Minimal",
         "low": "Low",
         "medium": "Medium",
-        "high": "High"
+        "high": "High",
+        "xhigh": "Extra high",
+        "max": "Max"
       }
     }
   },

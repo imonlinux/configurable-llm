@@ -689,6 +689,7 @@ class ConversationSubentryFlowHandler(ConfigSubentryFlow):
                     options=REASONING_EFFORT_OPTIONS,
                     translation_key=CONF_REASONING_EFFORT,
                     mode=SelectSelectorMode.DROPDOWN,
+                    custom_value=True,
                 )
             ),
         }
