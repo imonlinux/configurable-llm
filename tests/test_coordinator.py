@@ -178,6 +178,8 @@ async def test_get_model_info_not_found(
     assert model_info.id == "unknown-model"
     assert model_info.display_name == "unknown-model"
     assert model_info.created_at == datetime(1970, 1, 1, tzinfo=UTC)
+    # anthropic SDK 2.x (HA 2026.11) requires lifecycle on ModelInfo.
+    assert model_info.lifecycle == "active"
 
 
 async def test_get_default_model_with_data(

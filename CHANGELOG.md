@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.3.2
+
+Compatibility fix for Home Assistant 2026.11's anthropic SDK 2.x pairing: constructed model descriptors were missing the now-required `lifecycle` field (issue #13).
+
+### Fixed
+
+- **`ModelInfo` lifecycle validation error on model refresh (issue #13)** — the anthropic SDK 2.x line (which HA 2026.11 pairs at `2.3.0`) made `lifecycle` a required field on `anthropic.types.ModelInfo`, so every descriptor the integration constructs without it fails with `pydantic ValidationError: lifecycle Field required`. The reporter hit it on OpenRouter model-list refreshes (`normalize_model()` in the OpenAI-compatible provider); the same construction shape existed in four more places, all fixed: both `fetch_model` fallbacks in the OpenAI-compatible provider (a `models.retrieve` failure, and non-`Model` response bodies such as z.ai's empty-200), the not-found fallback in `coordinator.get_model_info()`, and the empty-response fallback in the Anthropic provider. All five sites now construct with `lifecycle="active"`. SDKs elsewhere in the manifest pin range (0.108.0+) declare the field as an allowed extra rather than a schema field, so passing it unconditionally is safe across the entire range — the pinned test tree (anthropic 0.125.0) exercises exactly that path, with regression assertions on every constructed descriptor.
+
+### Validation
+
+- Full suite on the pinned test tree (HA 2025.8.1, anthropic 0.125.0): **146 passed, 2 skipped** — the 145/2 baseline plus a new `models.retrieve`-failure regression test, and lifecycle assertions added to the normalize-model, both fetch-degrade, and coordinator not-found tests
+- `ModelInfo(lifecycle="active")` construction verified against `anthropic==2.3.0` on Python 3.13: clean
+
 ## 1.3.1
 
 Community contribution: richer reasoning-effort control for OpenAI-compatible providers.

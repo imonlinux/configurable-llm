@@ -1096,6 +1096,7 @@ class AnthropicProvider(LLMProvider):
                     id=model_id,
                     created_at=datetime(1970, 1, 1, tzinfo=UTC),
                     display_name=self.model_alias(model_id),
+                    lifecycle="active",
                 ),
                 None,
                 None,
