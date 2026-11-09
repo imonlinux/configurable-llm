@@ -94,6 +94,9 @@ class ConfigurableLLMCoordinator(DataUpdateCoordinator[list[ModelInfo]]):
             id=model_id,
             created_at=datetime.datetime(1970, 1, 1, tzinfo=datetime.UTC),
             display_name=alias,
+            # Required by the anthropic SDK 2.x line (HA 2026.11); allowed
+            # extra on older SDKs in our pin range.
+            lifecycle="active",
         ), False
 
     @callback

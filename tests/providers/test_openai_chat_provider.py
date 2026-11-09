@@ -534,6 +534,7 @@ def test_normalize_model() -> None:
     assert info.display_name == "llama-3-70b"
     assert info.capabilities is None
     assert info.created_at == datetime.fromtimestamp(1700000000, UTC)
+    assert info.lifecycle == "active"
 
 
 async def test_async_list_models_success(hass: HomeAssistant) -> None:
@@ -682,6 +683,27 @@ async def test_fetch_model_degrades_on_non_model_result(hass: HomeAssistant) -> 
     assert info.id == "glm-4.7-flash"
     assert info.display_name == "glm-4.7-flash"
     assert info.capabilities is None
+    assert info.lifecycle == "active"
+
+
+async def test_fetch_model_degrades_on_retrieve_error(hass: HomeAssistant) -> None:
+    """A models.retrieve failure degrades to a safe descriptor (issue #13).
+
+    Every descriptor this provider constructs must carry ``lifecycle`` so the
+    anthropic SDK 2.x line (where the field is required) accepts it; older
+    SDKs in the pin range keep it as an allowed extra.
+    """
+    coordinator = MagicMock()
+    coordinator.client.with_options.return_value.models.retrieve = AsyncMock(
+        side_effect=RuntimeError("endpoint not implemented")
+    )
+
+    info, err_key, _ = await provider.fetch_model(coordinator, "llama-3-70b")
+
+    assert err_key is None
+    assert isinstance(info, ModelInfo)
+    assert info.id == "llama-3-70b"
+    assert info.lifecycle == "active"
 
 
 async def test_fetch_model_passthrough_on_real_model(hass: HomeAssistant) -> None:

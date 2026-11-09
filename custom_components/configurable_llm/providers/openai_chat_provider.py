@@ -319,6 +319,10 @@ class OpenAIChatProvider(LLMProvider):
                 else datetime(1970, 1, 1, tzinfo=UTC)
             ),
             display_name=raw.id,
+            # anthropic SDK 2.x (paired with HA 2026.11) made ``lifecycle`` a
+            # required field; older SDKs in our pin range treat it as an
+            # allowed extra, so passing it unconditionally is safe.
+            lifecycle="active",
         )
 
     async def async_list_models(self, client: openai.AsyncOpenAI) -> list[ModelInfo]:
@@ -384,6 +388,7 @@ class OpenAIChatProvider(LLMProvider):
                     id=model_id,
                     created_at=datetime(1970, 1, 1, tzinfo=UTC),
                     display_name=model_id,
+                    lifecycle="active",
                 ),
                 None,
                 None,
@@ -400,6 +405,7 @@ class OpenAIChatProvider(LLMProvider):
                     id=model_id,
                     created_at=datetime(1970, 1, 1, tzinfo=UTC),
                     display_name=model_id,
+                    lifecycle="active",
                 ),
                 None,
                 None,

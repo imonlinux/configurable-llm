@@ -485,6 +485,7 @@ async def test_fetch_model_degrades_on_non_model_result(hass: HomeAssistant) -> 
     assert info.display_name == "glm-4.7-flash"
     assert info.capabilities is None
     assert info.max_tokens is None
+    assert info.lifecycle == "active"
 
 
 async def test_fetch_model_passthrough_on_real_result(hass: HomeAssistant) -> None:
