@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented here. This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.3.3
+
+Fix for a total outage of the Anthropic protocol path on Home Assistant 2026.11, plus a floor-only manifest range so core SDK bumps stop generating conflicts.
+
+### Fixed
+
+- **Anthropic protocol path: every conversation turn failed with `TypeError: 'typing.Union' object is not callable` (HA 2026.11)** — the anthropic SDK 2.x line changed `MessageParam` from a TypedDict (keyword-callable, returns a dict) into a non-instantiable `typing.Union` alias, and the provider constructed it as a class at three sites in `_convert_content` (tool-result grouping, user messages, assistant messages), so the first conversion of any turn died before a request was ever built. HA 2026.11 GA is the first core to pair the 2.x SDK and 1.3.0 made 2026.11.0 the floor, so every supported install on the Anthropic protocol — including z.ai and other Anthropic-compatible endpoints — was affected. All three sites now construct plain dicts, runtime-identical across the entire manifest range (0.108 through 2.x).
+
+### Changed
+
+- **Manifest requirement `anthropic>=0.108.0,<3` → `anthropic>=2.3.0` (floor-only)** — a capped range cannot hold users back (HA core ships its own SDK pin in lockstep) and only adds a setup-time pip conflict when core crosses the cap; the overnight hassfest reds from core dep bumps all trace to the cap. The floor moves to 2.3.0, the pairing of the HA 2026.11 floor this release requires. The test environment now tracks the newest admitted SDK (`anthropic>=2.3.0`, unpinned above its floor) so SDK releases that reshape types redden the next push's CI instead of surfacing in a user's HA log — that tripwire caught two more 2.x facts during validation (an httpx2-client guard and a required `lifecycle` field, both test-tree-only; production unaffected because core ships the helper and the SDK in lockstep).
+
+### Validation
+
+- Full suite on anthropic 2.10.0 (newest admitted) and on anthropic 2.3.0 (HA 2026.11 floor pairing): **146 passed, 2 skipped** on both — the 1.3.2 baseline held, with the message conversion exercised by the existing `_convert_content` regression tests
+- Hassfest, Tests (Python 3.13), and HACS Action green on the fix PR (#15)
+
 ## 1.3.2
 
 Compatibility fix for Home Assistant 2026.11's anthropic SDK 2.x pairing: constructed model descriptors were missing the now-required `lifecycle` field (issue #13).

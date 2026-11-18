@@ -204,7 +204,7 @@ Restart Home Assistant.
 Check the Home Assistant log (`Settings → System → Logs`). The most common causes:
 
 - **HA version too old** — this integration requires HA 2026.11 or newer because it uses AI task entities, config subentries, and the anthropic 2.x SDK line (HACS and the built-in Marketplace show the repository as pending below that version)
-- **SDK install failed** — the integration requires `anthropic>=0.108.0,<3` and `openai>=2.45.0`; pip needs network access on first load
+- **SDK install failed** — the integration requires `anthropic>=2.3.0` (floor-only; the cap was dropped so HA core's lockstep SDK bumps never conflict) and `openai>=2.45.0`; pip needs network access on first load
 
 ### Authentication fails
 
