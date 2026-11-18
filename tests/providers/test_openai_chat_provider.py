@@ -621,12 +621,14 @@ def test_get_default_model_prefers_known_chat_model(
             id="gpt-4o-realtime-preview",  # Not a chat model
             display_name="GPT-4o Realtime Preview",
             created_at=datetime(2024, 1, 1, tzinfo=UTC),
+            lifecycle="active",
         ),
         ModelInfo(
             type="model",
             id="gpt-4o-mini",  # Our known good default
             display_name="GPT-4o Mini",
             created_at=datetime(2024, 1, 1, tzinfo=UTC),
+            lifecycle="active",
         ),
     ]
 
@@ -651,6 +653,7 @@ def test_get_default_model_fallback_to_first(
             id="llama-3.2-3b",  # gpt-4o-mini not in this list
             display_name="Llama 3.2 3B",
             created_at=datetime(2024, 1, 1, tzinfo=UTC),
+            lifecycle="active",
         ),
     ]
 

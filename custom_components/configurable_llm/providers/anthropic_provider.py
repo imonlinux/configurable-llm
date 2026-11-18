@@ -267,6 +267,9 @@ def _convert_content(  # noqa: C901
     chat_content: Iterable[conversation.Content],
 ) -> tuple[list[MessageParam], str | None]:
     """Transform HA chat_log content into Anthropic API format."""
+    # SDK 2.x made MessageParam a non-instantiable Union alias; messages are
+    # constructed as plain dicts, runtime-identical across the supported SDK
+    # range (0.108 through 2.x). Do not switch back to MessageParam(...).
     messages: list[MessageParam] = []
     container_id: str | None = None
 
@@ -349,10 +352,10 @@ def _convert_content(  # noqa: C901
                 "assistant" if external_tool else "user"
             ):
                 messages.append(
-                    MessageParam(
-                        role="assistant" if external_tool else "user",
-                        content=[tool_result_block],
-                    )
+                    {
+                        "role": "assistant" if external_tool else "user",
+                        "content": [tool_result_block],
+                    }
                 )
             elif isinstance(messages[-1]["content"], str):
                 messages[-1]["content"] = [
@@ -365,10 +368,10 @@ def _convert_content(  # noqa: C901
             # Combine consequent user messages
             if not messages or messages[-1]["role"] != "user":
                 messages.append(
-                    MessageParam(
-                        role="user",
-                        content=content.content,
-                    )
+                    {
+                        "role": "user",
+                        "content": content.content,
+                    }
                 )
             elif isinstance(messages[-1]["content"], str):
                 messages[-1]["content"] = [
@@ -383,10 +386,10 @@ def _convert_content(  # noqa: C901
             # Combine consequent assistant messages
             if not messages or messages[-1]["role"] != "assistant":
                 messages.append(
-                    MessageParam(
-                        role="assistant",
-                        content=[],
-                    )
+                    {
+                        "role": "assistant",
+                        "content": [],
+                    }
                 )
             elif isinstance(messages[-1]["content"], str):
                 messages[-1]["content"] = [

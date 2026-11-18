@@ -497,6 +497,7 @@ async def test_fetch_model_passthrough_on_real_result(hass: HomeAssistant) -> No
         display_name="GLM-4.7",
         capabilities=None,
         max_tokens=None,
+        lifecycle="active",
     )
     coordinator = MagicMock()
     coordinator.client.models.retrieve = AsyncMock(return_value=real)
