@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import anthropic
+import httpx2
 import pytest
 from anthropic.types import ModelInfo
 from homeassistant import setup
@@ -77,27 +78,54 @@ def mock_options() -> dict:
     }
 
 
+@pytest.fixture(autouse=True)
+def anthropic_httpx2_client(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Serve the Anthropic SDK an httpx2 client, as production does.
+
+    The anthropic SDK 2.x line is httpx2-based and rejects classic httpx
+    objects at construction (2.10 hard-guards them with a TypeError). The
+    pinned HA test tree (2025.8.1) still serves classic httpx clients from
+    its httpx_client helper, while HA core ships that helper and the SDK
+    version in lockstep: on the deployed HA 2026.11 pairing the helper hands
+    every integration an httpx2 client. Patching mirrors that pairing for
+    the suite without touching production code.
+    """
+    monkeypatch.setattr(
+        "custom_components.configurable_llm.providers.anthropic_provider"
+        ".get_async_client",
+        lambda hass: httpx2.AsyncClient(),
+    )
+
+
 @pytest.fixture
 def mock_models_list() -> list[ModelInfo]:
-    """Return mock models list from API."""
+    """Return mock models list from API.
+
+    lifecycle is required on ModelInfo from the anthropic SDK 2.x line
+    (HA 2026.11 pairs 2.3.0); 0.x SDKs accept it as an allowed extra, so
+    setting it unconditionally is safe across the manifest range.
+    """
     return [
         ModelInfo(
             type="model",
             id="claude-3-5-sonnet-20241022",
             display_name="Claude 3.5 Sonnet",
             created_at=datetime(2024, 10, 22, tzinfo=UTC),
+            lifecycle="active",
         ),
         ModelInfo(
             type="model",
             id="claude-3-5-haiku-20241022",
             display_name="Claude 3.5 Haiku",
             created_at=datetime(2024, 10, 22, tzinfo=UTC),
+            lifecycle="active",
         ),
         ModelInfo(
             type="model",
             id="claude-3-opus-20240229",
             display_name="Claude 3 Opus",
             created_at=datetime(2024, 2, 29, tzinfo=UTC),
+            lifecycle="active",
         ),
     ]
 

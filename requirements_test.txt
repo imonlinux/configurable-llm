@@ -22,17 +22,21 @@ pytest-cov>=4.1.0
 pytest-timeout>=2.3.0
 
 # Runtime dependencies of this integration, not provided by Home Assistant
-# itself. Tested against the versions Home Assistant 2026.10 pins, the newest
-# release this manifest's SDK-major floor covers (HA 2026.11 moves to the
-# anthropic 2.x line; the 2.x pairing is validated by hassfest against core
-# dev, and the httpx2 client it requires comes from HA 2026.11's own
-# httpx_client helper, so the suite tree stays on the 0.x line):
-#   - anthropic: HA 2026.9 pins 0.108.0, HA 2026.10 pins 0.125.0, HA 2026.11
-#     pins 2.3.0; the manifest range (>=0.108.0,<3) admits all three so one
-#     release serves every core.
-#   - openai: HA 2026.10 moved to the 3.x line (3.10.0); the manifest floor
+# itself:
+#   - anthropic: UNPINNED above its floor (>=2.3.0) on purpose. Every fresh
+#     environment installs the newest SDK the manifest range admits, so an
+#     SDK release that reshapes types (the 2.x line made MessageParam a
+#     non-instantiable Union and broke every conversation turn, found live
+#     2026-11) reddens the next push's CI instead of surfacing in a user's
+#     HA log. The cost: a breaking SDK release can fail CI on an unrelated
+#     open PR - that is the tripwire working, not noise. Floor 2.3.0 is the
+#     pairing of the HA 2026.11 floor this integration requires (hacs.json);
+#     the manifest range is floor-only for the same reason a test cap would
+#     be: a cap cannot hold users back (core ships its own pin in lockstep)
+#     and only adds a setup-time pip conflict when core crosses it.
+#   - openai: pinned to the HA 2026.10 pairing (3.10.0); the manifest floor
 #     (>=2.45.0) admits both major lines.
-anthropic==0.125.0
+anthropic>=2.3.0
 openai==3.10.0
 
 # voluptuous-openapi is declared in manifest.json so the integration is
